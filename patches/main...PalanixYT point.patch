@@ -1,0 +1,1198 @@
+From d08e6a3a7e9ccf47720b2e63f298c97292f85ebf Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 01:22:48 -0600
+Subject: [PATCH 01/20] include CHANGELOG.md in the tarball
+
+Fixes: 24576f1fdf56bc8879203bb2d7e7cd116d4bba42
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 6cde460cd..f0ff805b7 100644
+--- a/Makefile
++++ b/Makefile
+@@ -42,7 +42,7 @@ clean:
+ 
+ dist: clean
+ 	mkdir -p dwl-$(VERSION)
+-	cp -R LICENSE* Makefile README.md client.h config.def.h\
++	cp -R LICENSE* Makefile CHANGELOG.md README.md client.h config.def.h\
+ 		config.mk protocols dwl.1 dwl.c util.c util.h dwl.desktop\
+ 		dwl-$(VERSION)
+ 	tar -caf dwl-$(VERSION).tar.gz dwl-$(VERSION)
+
+From 66ef4ecfec46eb95cc8db8d9d66502b3578d723c Mon Sep 17 00:00:00 2001
+From: Squibid <me@zacharyscheiman.com>
+Date: Sat, 25 Nov 2023 03:42:27 -0500
+Subject: [PATCH 02/20] Change github links to codeberg links in README.md
+
+---
+ README.md | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/README.md b/README.md
+index 62ae87282..820828f1b 100644
+--- a/README.md
++++ b/README.md
+@@ -39,7 +39,7 @@ Features under consideration (possibly as patches) are:
+ - Protocols made trivial by wlroots
+ - Implement the text-input and input-method protocols to support IME once ibus
+   implements input-method v2 (see https://github.com/ibus/ibus/pull/2256 and
+-  https://github.com/djpohly/dwl/pull/235)
++  https://codeberg.org/dwl/dwl/pulls/235)
+ 
+ Feature *non-goals* for the main codebase include:
+ 
+@@ -162,12 +162,12 @@ inspiration, and to the various contributors to the project, including:
+ [#dwl on Libera Chat]: https://web.libera.chat/?channels=#dwl
+ [Wayland]: https://wayland.freedesktop.org/
+ [wlroots]: https://gitlab.freedesktop.org/wlroots/wlroots/
+-[wlroots-next branch]: https://github.com/djpohly/dwl/tree/wlroots-next
+-[patches page on our wiki]: https://github.com/djpohly/dwl/wiki/Patches
++[wlroots-next branch]: https://codeberg.org/dwl/dwl/src/branch/wlroots-next
++[patches page on our wiki]: https://codeberg.org/dwl/dwl/wiki/Patches
+ [s6]: https://skarnet.org/software/s6/
+ [anopa]: https://jjacky.com/anopa/
+ [runit]: http://smarden.org/runit/faq.html#userservices
+ [`systemd --user`]: https://wiki.archlinux.org/title/Systemd/User
+-[wiki]: https://github.com/djpohly/dwl/wiki#compatible-status-bars
++[wiki]: https://codeberg.org/dwl/dwl/wiki/Home#compatible-status-bars
+ [list of useful resources on our wiki]:
+-    https://github.com/djpohly/dwl/wiki#migrating-from-x
++    https://codeberg.org/dwl/dwl/wiki/Home#migrating-from-x
+
+From 2783e82bf847e9f3e46f9d09037799a31d12c9ad Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 18:50:42 -0600
+Subject: [PATCH 03/20] make sure to unlink Monitor.request_state listener
+
+---
+ dwl.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/dwl.c b/dwl.c
+index ef27a1d38..5725bf197 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -661,13 +661,15 @@ cleanupmon(struct wl_listener *listener, void *data)
+ 	LayerSurface *l, *tmp;
+ 	int i;
+ 
+-	for (i = 0; i <= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY; i++)
++	/* m->layers[i] are intentionally not unlinked */
++	for (i = 0; i < LENGTH(m->layers); i++)
+ 		wl_list_for_each_safe(l, tmp, &m->layers[i], link)
+ 			wlr_layer_surface_v1_destroy(l->layer_surface);
+ 
+ 	wl_list_remove(&m->destroy.link);
+ 	wl_list_remove(&m->frame.link);
+ 	wl_list_remove(&m->link);
++	wl_list_remove(&m->request_state.link);
+ 	m->wlr_output->data = NULL;
+ 	wlr_output_layout_remove(output_layout, m->wlr_output);
+ 	wlr_scene_output_destroy(m->scene_output);
+
+From 922e117fc5fd03faebd8f23e127fb75d21b83f24 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 19:04:08 -0600
+Subject: [PATCH 04/20] add new 'unreleased' section
+
+---
+ CHANGELOG.md | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index ac0f3f2af..366728ddf 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,7 +1,19 @@
+ # Changelog
+ 
++* [Unreleased](#unreleased)
+ * [0.5](#0.5)
+ 
++
++## Unreleased
++### Added
++### Changed
++### Deprecated
++### Removed
++### Fixed
++### Security
++### Contributors
++
++
+ ## 0.5
+ 
+ ### Added
+
+From 1f10e69b4ccaf5ba335b4584db3c42190b45ffe6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:40:13 -0600
+Subject: [PATCH 05/20] use sizeof(*pointer) instead of sizeof(struct)
+
+---
+ dwl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dwl.c b/dwl.c
+index 5725bf197..c0c5c086a 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -815,7 +815,7 @@ createlayersurface(struct wl_listener *listener, void *data)
+ 		return;
+ 	}
+ 
+-	layersurface = wlr_layer_surface->data = ecalloc(1, sizeof(LayerSurface));
++	layersurface = wlr_layer_surface->data = ecalloc(1, sizeof(*layersurface));
+ 	layersurface->type = LayerShell;
+ 	LISTEN(&wlr_layer_surface->surface->events.commit,
+ 			&layersurface->surface_commit, commitlayersurfacenotify);
+
+From 66ec028b0056b834442a7ede6544eae8709946c0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:39:16 -0600
+Subject: [PATCH 06/20] simplify check for wlr_layer_surface.output
+
+---
+ dwl.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index c0c5c086a..ea0a79150 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -807,10 +807,8 @@ createlayersurface(struct wl_listener *listener, void *data)
+ 	struct wlr_layer_surface_v1_state old_state;
+ 	struct wlr_scene_tree *l = layers[layermap[wlr_layer_surface->pending.layer]];
+ 
+-	if (!wlr_layer_surface->output)
+-		wlr_layer_surface->output = selmon ? selmon->wlr_output : NULL;
+-
+-	if (!wlr_layer_surface->output) {
++	if (!wlr_layer_surface->output
++			&& !(wlr_layer_surface->output = selmon ? selmon->wlr_output : NULL)) {
+ 		wlr_layer_surface_v1_destroy(wlr_layer_surface);
+ 		return;
+ 	}
+
+From a353eee2cac0378a4201e408a3417aa107a7f647 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:48:54 -0600
+Subject: [PATCH 07/20] simplify settings popups scene tree parent
+
+---
+ dwl.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index ea0a79150..8500f2b27 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -720,13 +720,12 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
+ 
+ 	if (layer != layersurface->scene->node.parent) {
+ 		wlr_scene_node_reparent(&layersurface->scene->node, layer);
+-		wlr_scene_node_reparent(&layersurface->popups->node, layer);
+ 		wl_list_remove(&layersurface->link);
+ 		wl_list_insert(&layersurface->mon->layers[wlr_layer_surface->current.layer],
+ 				&layersurface->link);
++		wlr_scene_node_reparent(&layersurface->popups->node, (wlr_layer_surface->current.layer
++				< ZWLR_LAYER_SHELL_V1_LAYER_TOP ? layers[LyrTop] : layer));
+ 	}
+-	if (wlr_layer_surface->current.layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+-		wlr_scene_node_reparent(&layersurface->popups->node, layers[LyrTop]);
+ 
+ 	if (wlr_layer_surface->current.committed == 0
+ 			&& layersurface->mapped == wlr_layer_surface->surface->mapped)
+
+From 39f4ee564b153966b0219004293d16900d2356d1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:35:38 -0600
+Subject: [PATCH 08/20] use wlr_box_equal() instead of memcmp
+
+---
+ dwl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dwl.c b/dwl.c
+index 8500f2b27..b589378c6 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -504,7 +504,7 @@ arrangelayers(Monitor *m)
+ 	for (i = 3; i >= 0; i--)
+ 		arrangelayer(m, &m->layers[i], &usable_area, 1);
+ 
+-	if (memcmp(&usable_area, &m->w, sizeof(struct wlr_box))) {
++	if (!wlr_box_equal(&usable_area, &m->w)) {
+ 		m->w = usable_area;
+ 		arrange(m);
+ 	}
+
+From a5e068b20a04357b4fc709b1c6f3b698b4dc7094 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 13:30:56 -0600
+Subject: [PATCH 09/20] destroy the layer-suface's scene tree for popups
+
+---
+ dwl.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dwl.c b/dwl.c
+index b589378c6..6a96179ca 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -1067,6 +1067,7 @@ destroylayersurfacenotify(struct wl_listener *listener, void *data)
+ 	wl_list_remove(&layersurface->unmap.link);
+ 	wl_list_remove(&layersurface->surface_commit.link);
+ 	wlr_scene_node_destroy(&layersurface->scene->node);
++	wlr_scene_node_destroy(&layersurface->popups->node);
+ 	free(layersurface);
+ }
+ 
+
+From 01a237bd5c96da5c4294b20e5093881008401b66 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:42:38 -0600
+Subject: [PATCH 10/20] send wl_surface.enter before initial commit
+
+It's not necessary but it'll help clients to render a perfect first frame
+---
+ dwl.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dwl.c b/dwl.c
+index 6a96179ca..09d3ea05a 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -833,6 +833,7 @@ createlayersurface(struct wl_listener *listener, void *data)
+ 
+ 	wl_list_insert(&layersurface->mon->layers[wlr_layer_surface->pending.layer],
+ 			&layersurface->link);
++	wlr_surface_send_enter(wlr_layer_surface->surface, wlr_layer_surface->output);
+ 
+ 	/* Temporarily set the layer's current state to pending
+ 	 * so that we can easily arrange it
+
+From 9cb1ece6ccecaa49462160816afb24cbbb43e87b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:46:39 -0600
+Subject: [PATCH 11/20] do not check if a layer surface has monitor on commit
+
+We do not allow creating them w/o monitor and they are destroyed when
+destroying their monitor
+---
+ dwl.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index 09d3ea05a..c187df2f4 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -710,14 +710,8 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
+ {
+ 	LayerSurface *layersurface = wl_container_of(listener, layersurface, surface_commit);
+ 	struct wlr_layer_surface_v1 *wlr_layer_surface = layersurface->layer_surface;
+-	struct wlr_output *wlr_output = wlr_layer_surface->output;
+ 	struct wlr_scene_tree *layer = layers[layermap[wlr_layer_surface->current.layer]];
+ 
+-	/* For some reason this layersurface have no monitor, this can be because
+-	 * its monitor has just been destroyed */
+-	if (!wlr_output || !(layersurface->mon = wlr_output->data))
+-		return;
+-
+ 	if (layer != layersurface->scene->node.parent) {
+ 		wlr_scene_node_reparent(&layersurface->scene->node, layer);
+ 		wl_list_remove(&layersurface->link);
+
+From b100b446b8c82bc2dcdbb40856ab87ed4a4ad594 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:49:52 -0600
+Subject: [PATCH 12/20] return early if a layersurface didn't commit something
+
+---
+ dwl.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index c187df2f4..8d5f5994d 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -712,6 +712,11 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
+ 	struct wlr_layer_surface_v1 *wlr_layer_surface = layersurface->layer_surface;
+ 	struct wlr_scene_tree *layer = layers[layermap[wlr_layer_surface->current.layer]];
+ 
++	if (wlr_layer_surface->current.committed == 0
++			&& layersurface->mapped == wlr_layer_surface->surface->mapped)
++		return;
++	layersurface->mapped = wlr_layer_surface->surface->mapped;
++
+ 	if (layer != layersurface->scene->node.parent) {
+ 		wlr_scene_node_reparent(&layersurface->scene->node, layer);
+ 		wl_list_remove(&layersurface->link);
+@@ -721,11 +726,6 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
+ 				< ZWLR_LAYER_SHELL_V1_LAYER_TOP ? layers[LyrTop] : layer));
+ 	}
+ 
+-	if (wlr_layer_surface->current.committed == 0
+-			&& layersurface->mapped == wlr_layer_surface->surface->mapped)
+-		return;
+-	layersurface->mapped = wlr_layer_surface->surface->mapped;
+-
+ 	arrangelayers(layersurface->mon);
+ }
+ 
+
+From 2e4fdc1664e094b38814d760b4c933c3c3450a57 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 13:01:54 -0600
+Subject: [PATCH 13/20] use `l` instead of `layersurface`
+
+`layer_surface` instead of `wlr_layer_surface`
+and `scene_layer` whenever a wlr_scene_tree is related to layer surfaces
+---
+ dwl.c | 154 +++++++++++++++++++++++++++-------------------------------
+ 1 file changed, 72 insertions(+), 82 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index 8d5f5994d..69da91d07 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -469,21 +469,20 @@ arrange(Monitor *m)
+ void
+ arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area, int exclusive)
+ {
+-	LayerSurface *layersurface;
++	LayerSurface *l;
+ 	struct wlr_box full_area = m->m;
+ 
+-	wl_list_for_each(layersurface, list, link) {
+-		struct wlr_layer_surface_v1 *wlr_layer_surface = layersurface->layer_surface;
+-		struct wlr_layer_surface_v1_state *state = &wlr_layer_surface->current;
++	wl_list_for_each(l, list, link) {
++		struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
++		struct wlr_layer_surface_v1_state *state = &layer_surface->current;
+ 
+ 		if (exclusive != (state->exclusive_zone > 0))
+ 			continue;
+ 
+-		wlr_scene_layer_surface_v1_configure(layersurface->scene_layer, &full_area, usable_area);
+-		wlr_scene_node_set_position(&layersurface->popups->node,
+-				layersurface->scene->node.x, layersurface->scene->node.y);
+-		layersurface->geom.x = layersurface->scene->node.x;
+-		layersurface->geom.y = layersurface->scene->node.y;
++		wlr_scene_layer_surface_v1_configure(l->scene_layer, &full_area, usable_area);
++		wlr_scene_node_set_position(&l->popups->node, l->scene->node.x, l->scene->node.y);
++		l->geom.x = l->scene->node.x;
++		l->geom.y = l->scene->node.y;
+ 	}
+ }
+ 
+@@ -492,11 +491,11 @@ arrangelayers(Monitor *m)
+ {
+ 	int i;
+ 	struct wlr_box usable_area = m->m;
++	LayerSurface *l;
+ 	uint32_t layers_above_shell[] = {
+ 		ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
+ 		ZWLR_LAYER_SHELL_V1_LAYER_TOP,
+ 	};
+-	LayerSurface *layersurface;
+ 	if (!m->wlr_output->enabled)
+ 		return;
+ 
+@@ -515,14 +514,12 @@ arrangelayers(Monitor *m)
+ 
+ 	/* Find topmost keyboard interactive layer, if such a layer exists */
+ 	for (i = 0; i < LENGTH(layers_above_shell); i++) {
+-		wl_list_for_each_reverse(layersurface,
+-				&m->layers[layers_above_shell[i]], link) {
+-			if (!locked && layersurface->layer_surface->current.keyboard_interactive
+-					&& layersurface->mapped) {
++		wl_list_for_each_reverse(l, &m->layers[layers_above_shell[i]], link) {
++			if (!locked && l->layer_surface->current.keyboard_interactive && l->mapped) {
+ 				/* Deactivate the focused client. */
+ 				focusclient(NULL, 0);
+-				exclusive_focus = layersurface;
+-				client_notify_enter(layersurface->layer_surface->surface, wlr_seat_get_keyboard(seat));
++				exclusive_focus = l;
++				client_notify_enter(l->layer_surface->surface, wlr_seat_get_keyboard(seat));
+ 				return;
+ 			}
+ 		}
+@@ -708,25 +705,24 @@ closemon(Monitor *m)
+ void
+ commitlayersurfacenotify(struct wl_listener *listener, void *data)
+ {
+-	LayerSurface *layersurface = wl_container_of(listener, layersurface, surface_commit);
+-	struct wlr_layer_surface_v1 *wlr_layer_surface = layersurface->layer_surface;
+-	struct wlr_scene_tree *layer = layers[layermap[wlr_layer_surface->current.layer]];
++	LayerSurface *l = wl_container_of(listener, l, surface_commit);
++	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
++	struct wlr_scene_tree *scene_layer = layers[layermap[layer_surface->current.layer]];
+ 
+-	if (wlr_layer_surface->current.committed == 0
+-			&& layersurface->mapped == wlr_layer_surface->surface->mapped)
++
++	if (layer_surface->current.committed == 0 && l->mapped == layer_surface->surface->mapped)
+ 		return;
+-	layersurface->mapped = wlr_layer_surface->surface->mapped;
+-
+-	if (layer != layersurface->scene->node.parent) {
+-		wlr_scene_node_reparent(&layersurface->scene->node, layer);
+-		wl_list_remove(&layersurface->link);
+-		wl_list_insert(&layersurface->mon->layers[wlr_layer_surface->current.layer],
+-				&layersurface->link);
+-		wlr_scene_node_reparent(&layersurface->popups->node, (wlr_layer_surface->current.layer
+-				< ZWLR_LAYER_SHELL_V1_LAYER_TOP ? layers[LyrTop] : layer));
++	l->mapped = layer_surface->surface->mapped;
++
++	if (scene_layer != l->scene->node.parent) {
++		wlr_scene_node_reparent(&l->scene->node, scene_layer);
++		wl_list_remove(&l->link);
++		wl_list_insert(&l->mon->layers[layer_surface->current.layer], &l->link);
++		wlr_scene_node_reparent(&l->popups->node, (layer_surface->current.layer
++				< ZWLR_LAYER_SHELL_V1_LAYER_TOP ? layers[LyrTop] : scene_layer));
+ 	}
+ 
+-	arrangelayers(layersurface->mon);
++	arrangelayers(l->mon);
+ }
+ 
+ void
+@@ -795,48 +791,44 @@ createkeyboard(struct wlr_keyboard *keyboard)
+ void
+ createlayersurface(struct wl_listener *listener, void *data)
+ {
+-	struct wlr_layer_surface_v1 *wlr_layer_surface = data;
+-	LayerSurface *layersurface;
++	struct wlr_layer_surface_v1 *layer_surface = data;
++	LayerSurface *l;
++	struct wlr_surface *surface = layer_surface->surface;
++	struct wlr_scene_tree *scene_layer = layers[layermap[layer_surface->pending.layer]];
+ 	struct wlr_layer_surface_v1_state old_state;
+-	struct wlr_scene_tree *l = layers[layermap[wlr_layer_surface->pending.layer]];
+ 
+-	if (!wlr_layer_surface->output
+-			&& !(wlr_layer_surface->output = selmon ? selmon->wlr_output : NULL)) {
+-		wlr_layer_surface_v1_destroy(wlr_layer_surface);
++	if (!layer_surface->output
++			&& !(layer_surface->output = selmon ? selmon->wlr_output : NULL)) {
++		wlr_layer_surface_v1_destroy(layer_surface);
+ 		return;
+ 	}
+ 
+-	layersurface = wlr_layer_surface->data = ecalloc(1, sizeof(*layersurface));
+-	layersurface->type = LayerShell;
+-	LISTEN(&wlr_layer_surface->surface->events.commit,
+-			&layersurface->surface_commit, commitlayersurfacenotify);
+-	LISTEN(&wlr_layer_surface->events.destroy, &layersurface->destroy,
+-			destroylayersurfacenotify);
+-	LISTEN(&wlr_layer_surface->surface->events.map, &layersurface->map,
+-			maplayersurfacenotify);
+-	LISTEN(&wlr_layer_surface->surface->events.unmap, &layersurface->unmap,
+-			unmaplayersurfacenotify);
+-
+-	layersurface->layer_surface = wlr_layer_surface;
+-	layersurface->mon = wlr_layer_surface->output->data;
+-	layersurface->scene_layer = wlr_scene_layer_surface_v1_create(l, wlr_layer_surface);
+-	layersurface->scene = layersurface->scene_layer->tree;
+-	layersurface->popups = wlr_layer_surface->surface->data = wlr_scene_tree_create(l);
+-
+-	layersurface->scene->node.data = layersurface;
+-
+-	wl_list_insert(&layersurface->mon->layers[wlr_layer_surface->pending.layer],
+-			&layersurface->link);
+-	wlr_surface_send_enter(wlr_layer_surface->surface, wlr_layer_surface->output);
++	l = layer_surface->data = ecalloc(1, sizeof(*l));
++	l->type = LayerShell;
++	LISTEN(&surface->events.commit, &l->surface_commit, commitlayersurfacenotify);
++	LISTEN(&surface->events.map, &l->map, maplayersurfacenotify);
++	LISTEN(&surface->events.unmap, &l->unmap, unmaplayersurfacenotify);
++	LISTEN(&layer_surface->events.destroy, &l->destroy, destroylayersurfacenotify);
++
++	l->layer_surface = layer_surface;
++	l->mon = layer_surface->output->data;
++	l->scene_layer = wlr_scene_layer_surface_v1_create(scene_layer, layer_surface);
++	l->scene = l->scene_layer->tree;
++	l->popups = surface->data = wlr_scene_tree_create(scene_layer);
++	l->scene->node.data = l;
++
++
++	wl_list_insert(&l->mon->layers[layer_surface->pending.layer],&l->link);
++	wlr_surface_send_enter(surface, layer_surface->output);
+ 
+ 	/* Temporarily set the layer's current state to pending
+ 	 * so that we can easily arrange it
+ 	 */
+-	old_state = wlr_layer_surface->current;
+-	wlr_layer_surface->current = wlr_layer_surface->pending;
+-	layersurface->mapped = 1;
+-	arrangelayers(layersurface->mon);
+-	wlr_layer_surface->current = old_state;
++	old_state = layer_surface->current;
++	layer_surface->current = layer_surface->pending;
++	l->mapped = 1;
++	arrangelayers(l->mon);
++	layer_surface->current = old_state;
+ }
+ 
+ void
+@@ -1054,16 +1046,16 @@ destroyidleinhibitor(struct wl_listener *listener, void *data)
+ void
+ destroylayersurfacenotify(struct wl_listener *listener, void *data)
+ {
+-	LayerSurface *layersurface = wl_container_of(listener, layersurface, destroy);
++	LayerSurface *l = wl_container_of(listener, l, destroy);
+ 
+-	wl_list_remove(&layersurface->link);
+-	wl_list_remove(&layersurface->destroy.link);
+-	wl_list_remove(&layersurface->map.link);
+-	wl_list_remove(&layersurface->unmap.link);
+-	wl_list_remove(&layersurface->surface_commit.link);
+-	wlr_scene_node_destroy(&layersurface->scene->node);
+-	wlr_scene_node_destroy(&layersurface->popups->node);
+-	free(layersurface);
++	wl_list_remove(&l->link);
++	wl_list_remove(&l->destroy.link);
++	wl_list_remove(&l->map.link);
++	wl_list_remove(&l->unmap.link);
++	wl_list_remove(&l->surface_commit.link);
++	wlr_scene_node_destroy(&l->scene->node);
++	wlr_scene_node_destroy(&l->popups->node);
++	free(l);
+ }
+ 
+ void
+@@ -2490,17 +2482,15 @@ unlocksession(struct wl_listener *listener, void *data)
+ void
+ unmaplayersurfacenotify(struct wl_listener *listener, void *data)
+ {
+-	LayerSurface *layersurface = wl_container_of(listener, layersurface, unmap);
++	LayerSurface *l = wl_container_of(listener, l, unmap);
+ 
+-	layersurface->mapped = 0;
+-	wlr_scene_node_set_enabled(&layersurface->scene->node, 0);
+-	if (layersurface == exclusive_focus)
++	l->mapped = 0;
++	wlr_scene_node_set_enabled(&l->scene->node, 0);
++	if (l == exclusive_focus)
+ 		exclusive_focus = NULL;
+-	if (layersurface->layer_surface->output
+-			&& (layersurface->mon = layersurface->layer_surface->output->data))
+-		arrangelayers(layersurface->mon);
+-	if (layersurface->layer_surface->surface ==
+-			seat->keyboard_state.focused_surface)
++	if (l->layer_surface->output && (l->mon = l->layer_surface->output->data))
++		arrangelayers(l->mon);
++	if (l->layer_surface->surface == seat->keyboard_state.focused_surface)
+ 		focusclient(focustop(selmon), 1);
+ 	motionnotify(0);
+ }
+
+From ff39cac355e79b21049ba0ad181c098aebefc313 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Tue, 28 Nov 2023 20:44:30 -0600
+Subject: [PATCH 14/20] convert issue templates to yaml
+
+also move the templates to .gitea to reflect the migration to Codeberg
+---
+ .gitea/issue_template/bug_report.yml       | 27 ++++++++++++++++++++++
+ .gitea/issue_template/enhancement-idea.yml |  9 ++++++++
+ .github/ISSUE_TEMPLATE/bug_report.md       | 17 --------------
+ .github/ISSUE_TEMPLATE/enhancement-idea.md | 10 --------
+ 4 files changed, 36 insertions(+), 27 deletions(-)
+ create mode 100644 .gitea/issue_template/bug_report.yml
+ create mode 100644 .gitea/issue_template/enhancement-idea.yml
+ delete mode 100644 .github/ISSUE_TEMPLATE/bug_report.md
+ delete mode 100644 .github/ISSUE_TEMPLATE/enhancement-idea.md
+
+diff --git a/.gitea/issue_template/bug_report.yml b/.gitea/issue_template/bug_report.yml
+new file mode 100644
+index 000000000..1ec1cf04c
+--- /dev/null
++++ b/.gitea/issue_template/bug_report.yml
+@@ -0,0 +1,27 @@
++name: Bug Report
++about: Something in dwl isn't working correctly
++title:
++labels:
++    - 'Kind/Bug'
++body:
++    - type: markdown
++      attributes:
++          value: |
++              Only report bugs that can be reproduced on the main (or wlroots-next) branch
++              Report patch issues to their respective authors
++    - type: input
++      id: dwl_version
++      attributes:
++          label: dwl version
++          placeholder: '`dwl -v`'
++      validations:
++          required: true
++    - type: input
++      id: wlroots_version
++      attributes:
++          label: wlroots version
++      validations:
++          required: true
++    - type: textarea
++      attributes:
++          label: Description
+diff --git a/.gitea/issue_template/enhancement-idea.yml b/.gitea/issue_template/enhancement-idea.yml
+new file mode 100644
+index 000000000..be1bbf250
+--- /dev/null
++++ b/.gitea/issue_template/enhancement-idea.yml
+@@ -0,0 +1,9 @@
++name: Enhancement idea
++about: Suggest a feature or improvement
++title:
++labels:
++    - 'Kind/Feature'
++body:
++    - type: textarea
++      attributes:
++          label: Description
+diff --git a/.github/ISSUE_TEMPLATE/bug_report.md b/.github/ISSUE_TEMPLATE/bug_report.md
+deleted file mode 100644
+index cd9bd8dcf..000000000
+--- a/.github/ISSUE_TEMPLATE/bug_report.md
++++ /dev/null
+@@ -1,17 +0,0 @@
+----
+-name: Bug report
+-about: Something in dwl isn't working correctly
+-title: ''
+-labels: 'A: bug'
+-assignees: ''
+-
+----
+-
+-## Info
+-dwl version:
+-wlroots version:
+-## Description
+-<!--
+-Only report bugs that can be reproduced on the main line
+-Report patch issues to their respective authors
+--->
+diff --git a/.github/ISSUE_TEMPLATE/enhancement-idea.md b/.github/ISSUE_TEMPLATE/enhancement-idea.md
+deleted file mode 100644
+index 0ac096db3..000000000
+--- a/.github/ISSUE_TEMPLATE/enhancement-idea.md
++++ /dev/null
+@@ -1,10 +0,0 @@
+----
+-name: Enhancement idea
+-about: Suggest a feature or improvement
+-title: ''
+-labels: 'A: enhancement'
+-assignees: ''
+-
+----
+-
+-
+
+From 43f31b8f1be327bf4d29e1efc2ea51178ac64481 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Tue, 28 Nov 2023 22:50:40 -0600
+Subject: [PATCH 15/20] improve the bug report template
+
+Fixes: https://codeberg.org/dwl/dwl/issues/498
+---
+ .gitea/issue_template/bug_report.yml | 43 +++++++++++++++++++++++++---
+ 1 file changed, 39 insertions(+), 4 deletions(-)
+
+diff --git a/.gitea/issue_template/bug_report.yml b/.gitea/issue_template/bug_report.yml
+index 1ec1cf04c..56f4a3e5b 100644
+--- a/.gitea/issue_template/bug_report.yml
++++ b/.gitea/issue_template/bug_report.yml
+@@ -7,21 +7,56 @@ body:
+     - type: markdown
+       attributes:
+           value: |
+-              Only report bugs that can be reproduced on the main (or wlroots-next) branch
+-              Report patch issues to their respective authors
++              - Only report bugs that can be reproduced on the main (or wlroots-next) branch without patches.
++              - Proprietary graphics drivers, including nvidia, are not supported. Please use the open source equivalents, such as nouveau, if you would like to use dwl.
++              - Report patch issues to their respective authors.
++
+     - type: input
+       id: dwl_version
+       attributes:
+-          label: dwl version
++          label: 'dwl version:'
+           placeholder: '`dwl -v`'
+       validations:
+           required: true
++
+     - type: input
+       id: wlroots_version
+       attributes:
+-          label: wlroots version
++          label: 'wlroots version:'
+       validations:
+           required: true
++
++    - type: input
++      id: distro
++      attributes:
++          label: What distro (and version) are you using?
++      validations:
++          required: false
++
++    - type: textarea
++      id: debug_log
++      attributes:
++          label: Debug Log
++          value: |
++              Run `dwl -d 2> ~/dwl.log` from a TTY and attach the **full** (do not truncate it) file here, or upload it to a pastebin.
++              Please try to keep the reproduction as brief as possible and exit dwl.
++      validations:
++          required: false
++
++    - type: textarea
++      id: backtrace
++      attributes:
++          label: Stack Trace
++          value: |
++              - Only required if dwl crashes.
++              - If the lines mentioning dwl or wlroots have `??`. Please compile both dwl and wlroots from source (enabling debug symbols) and try to reproduce.
++      validations:
++          required: false
++
+     - type: textarea
+       attributes:
+           label: Description
++          value: |
++              The steps you took to reproduce the problem.
++      validations:
++          required: false
+
+From 2e29189b92c581345eb6b40a98e81c0e692fe8a8 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Thu, 30 Nov 2023 21:10:21 -0600
+Subject: [PATCH 16/20] use a detached output state in outputmgrapplyortest()
+
+wlr_output.pending might be removed in wlroots 0.18
+---
+ dwl.c | 25 +++++++++++++------------
+ 1 file changed, 13 insertions(+), 12 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index 69da91d07..0ef6bfeb7 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -1724,14 +1724,17 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
+ 	wl_list_for_each(config_head, &config->heads, link) {
+ 		struct wlr_output *wlr_output = config_head->state.output;
+ 		Monitor *m = wlr_output->data;
++		struct wlr_output_state state;
+ 
+-		wlr_output_enable(wlr_output, config_head->state.enabled);
++		wlr_output_state_init(&state);
++		wlr_output_state_set_enabled(&state, config_head->state.enabled);
+ 		if (!config_head->state.enabled)
+ 			goto apply_or_test;
++
+ 		if (config_head->state.mode)
+-			wlr_output_set_mode(wlr_output, config_head->state.mode);
++			wlr_output_state_set_mode(&state, config_head->state.mode);
+ 		else
+-			wlr_output_set_custom_mode(wlr_output,
++			wlr_output_state_set_custom_mode(&state,
+ 					config_head->state.custom_mode.width,
+ 					config_head->state.custom_mode.height,
+ 					config_head->state.custom_mode.refresh);
+@@ -1741,18 +1744,16 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test)
+ 		if (m->m.x != config_head->state.x || m->m.y != config_head->state.y)
+ 			wlr_output_layout_add(output_layout, wlr_output,
+ 					config_head->state.x, config_head->state.y);
+-		wlr_output_set_transform(wlr_output, config_head->state.transform);
+-		wlr_output_set_scale(wlr_output, config_head->state.scale);
+-		wlr_output_enable_adaptive_sync(wlr_output,
++		wlr_output_state_set_transform(&state, config_head->state.transform);
++		wlr_output_state_set_scale(&state, config_head->state.scale);
++		wlr_output_state_set_adaptive_sync_enabled(&state,
+ 				config_head->state.adaptive_sync_enabled);
+ 
+ apply_or_test:
+-		if (test) {
+-			ok &= wlr_output_test(wlr_output);
+-			wlr_output_rollback(wlr_output);
+-		} else {
+-			ok &= wlr_output_commit(wlr_output);
+-		}
++		ok &= test ? wlr_output_test_state(wlr_output, &state)
++				: wlr_output_commit_state(wlr_output, &state);
++
++		wlr_output_state_finish(&state);
+ 	}
+ 
+ 	if (ok)
+
+From 00e867d5365a7d98b1094386f8a0b88839eb9d86 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Thu, 30 Nov 2023 21:12:31 -0600
+Subject: [PATCH 17/20] use detached output state in createmon()
+
+see previous commit for motivation
+---
+ dwl.c | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index 0ef6bfeb7..6d74a3fbf 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -858,22 +858,25 @@ createmon(struct wl_listener *listener, void *data)
+ 	struct wlr_output *wlr_output = data;
+ 	const MonitorRule *r;
+ 	size_t i;
++	struct wlr_output_state state;
+ 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
+ 	m->wlr_output = wlr_output;
+ 
+ 	wlr_output_init_render(wlr_output, alloc, drw);
+ 
+-	/* Initialize monitor state using configured rules */
+ 	for (i = 0; i < LENGTH(m->layers); i++)
+ 		wl_list_init(&m->layers[i]);
++
++	wlr_output_state_init(&state);
++	/* Initialize monitor state using configured rules */
+ 	m->tagset[0] = m->tagset[1] = 1;
+ 	for (r = monrules; r < END(monrules); r++) {
+ 		if (!r->name || strstr(wlr_output->name, r->name)) {
+ 			m->mfact = r->mfact;
+ 			m->nmaster = r->nmaster;
+-			wlr_output_set_scale(wlr_output, r->scale);
++			wlr_output_state_set_scale(&state, r->scale);
+ 			m->lt[0] = m->lt[1] = r->lt;
+-			wlr_output_set_transform(wlr_output, r->rr);
++			wlr_output_state_set_transform(&state, r->rr);
+ 			m->m.x = r->x;
+ 			m->m.y = r->y;
+ 			break;
+@@ -884,16 +887,19 @@ createmon(struct wl_listener *listener, void *data)
+ 	 * monitor supports only a specific set of modes. We just pick the
+ 	 * monitor's preferred mode; a more sophisticated compositor would let
+ 	 * the user configure it. */
+-	wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
++	wlr_output_state_set_mode(&state, wlr_output_preferred_mode(wlr_output));
+ 
+ 	/* Set up event listeners */
+ 	LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
+ 	LISTEN(&wlr_output->events.destroy, &m->destroy, cleanupmon);
+ 	LISTEN(&wlr_output->events.request_state, &m->request_state, requestmonstate);
+ 
+-	wlr_output_enable(wlr_output, 1);
+-	if (!wlr_output_commit(wlr_output))
++	wlr_output_state_set_enabled(&state, 1);
++	if (!wlr_output_commit_state(wlr_output, &state)) {
++		wlr_output_state_finish(&state);
+ 		return;
++	}
++	wlr_output_state_finish(&state);
+ 
+ 	wl_list_insert(&mons, &m->link);
+ 	printstatus();
+
+From 901d2e2d9d54ab6c6a66d0877402bab04a60093e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Thu, 30 Nov 2023 22:17:30 -0600
+Subject: [PATCH 18/20] check failure of wlr_output_init_render
+
+---
+ dwl.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index 6d74a3fbf..1eee5919e 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -859,10 +859,13 @@ createmon(struct wl_listener *listener, void *data)
+ 	const MonitorRule *r;
+ 	size_t i;
+ 	struct wlr_output_state state;
+-	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
+-	m->wlr_output = wlr_output;
++	Monitor *m;
+ 
+-	wlr_output_init_render(wlr_output, alloc, drw);
++	if (!wlr_output_init_render(wlr_output, alloc, drw))
++		return;
++
++	m = wlr_output->data = ecalloc(1, sizeof(*m));
++	m->wlr_output = wlr_output;
+ 
+ 	for (i = 0; i < LENGTH(m->layers); i++)
+ 		wl_list_init(&m->layers[i]);
+
+From 5f7d396996ce67bce4f2a35c936e9879576b5aa1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Thu, 30 Nov 2023 22:22:21 -0600
+Subject: [PATCH 19/20] don't return early if the first output commit fails
+
+---
+ dwl.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index 1eee5919e..1bfe8cf6f 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -898,10 +898,7 @@ createmon(struct wl_listener *listener, void *data)
+ 	LISTEN(&wlr_output->events.request_state, &m->request_state, requestmonstate);
+ 
+ 	wlr_output_state_set_enabled(&state, 1);
+-	if (!wlr_output_commit_state(wlr_output, &state)) {
+-		wlr_output_state_finish(&state);
+-		return;
+-	}
++	wlr_output_commit_state(wlr_output, &state);
+ 	wlr_output_state_finish(&state);
+ 
+ 	wl_list_insert(&mons, &m->link);
+
+From 794fef410ac2176369ad636132a3c2c51204beb3 Mon Sep 17 00:00:00 2001
+From: Palanix <palanixyt@gmail.com>
+Date: Sun, 3 Jul 2022 18:46:18 +0200
+Subject: [PATCH 20/20] Fix pointerconstraints
+
+---
+ Makefile     |  5 +++-
+ config.def.h |  3 ++
+ dwl.c        | 83 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 89 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index f0ff805b7..cc5e98ccd 100644
+--- a/Makefile
++++ b/Makefile
+@@ -16,7 +16,7 @@ LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` $(LIBS)
+ all: dwl
+ dwl: dwl.o util.o
+ 	$(CC) dwl.o util.o $(LDLIBS) $(LDFLAGS) $(DWLCFLAGS) -o $@
+-dwl.o: dwl.c config.mk config.h client.h cursor-shape-v1-protocol.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h
++dwl.o: dwl.c config.mk config.h client.h cursor-shape-v1-protocol.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h pointer-constraints-unstable-v1-protocol.h
+ util.o: util.c util.h
+ 
+ # wayland-scanner is a tool which generates C headers and rigging for Wayland
+@@ -28,6 +28,9 @@ WAYLAND_PROTOCOLS = `$(PKG_CONFIG) --variable=pkgdatadir wayland-protocols`
+ xdg-shell-protocol.h:
+ 	$(WAYLAND_SCANNER) server-header \
+ 		$(WAYLAND_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml $@
++pointer-constraints-unstable-v1-protocol.h:
++	$(WAYLAND_SCANNER) server-header \
++		$(WAYLAND_PROTOCOLS)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml $@
+ wlr-layer-shell-unstable-v1-protocol.h:
+ 	$(WAYLAND_SCANNER) server-header \
+ 		protocols/wlr-layer-shell-unstable-v1.xml $@
+diff --git a/config.def.h b/config.def.h
+index db0babc6f..943ba2d42 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -19,6 +19,9 @@ static const float fullscreen_bg[]         = {0.1, 0.1, 0.1, 1.0}; /* You can al
+ /* logging */
+ static int log_level = WLR_ERROR;
+ 
++/* pointer constraints */
++static const int allow_constrain      = 1;
++
+ static const Rule rules[] = {
+ 	/* app_id     title       tags mask     isfloating   monitor */
+ 	/* examples:
+diff --git a/dwl.c b/dwl.c
+index 1bfe8cf6f..2fb0500ff 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -1,6 +1,7 @@
+ /*
+  * See LICENSE file for copyright and license details.
+  */
++#include <assert.h>
+ #include <getopt.h>
+ #include <libinput.h>
+ #include <linux/input-event-codes.h>
+@@ -35,8 +36,10 @@
+ #include <wlr/types/wlr_output_management_v1.h>
+ #include <wlr/types/wlr_pointer.h>
+ #include <wlr/types/wlr_presentation_time.h>
++#include <wlr/types/wlr_pointer_constraints_v1.h>
+ #include <wlr/types/wlr_primary_selection.h>
+ #include <wlr/types/wlr_primary_selection_v1.h>
++#include <wlr/types/wlr_relative_pointer_v1.h>
+ #include <wlr/types/wlr_scene.h>
+ #include <wlr/types/wlr_screencopy_v1.h>
+ #include <wlr/types/wlr_seat.h>
+@@ -209,6 +212,14 @@ typedef struct {
+ 	int x, y;
+ } MonitorRule;
+ 
++struct pointer_constraint {
++	struct wlr_pointer_constraint_v1 *constraint;
++
++	struct wl_listener set_region;
++	struct wl_listener destroy;
++};
++
++
+ typedef struct {
+ 	const char *id;
+ 	const char *title;
+@@ -251,6 +262,7 @@ static void createlocksurface(struct wl_listener *listener, void *data);
+ static void createmon(struct wl_listener *listener, void *data);
+ static void createnotify(struct wl_listener *listener, void *data);
+ static void createpointer(struct wlr_pointer *pointer);
++static void createpointerconstraint(struct wl_listener *listener, void *data);
+ static void cursorframe(struct wl_listener *listener, void *data);
+ static void destroydragicon(struct wl_listener *listener, void *data);
+ static void destroyidleinhibitor(struct wl_listener *listener, void *data);
+@@ -260,12 +272,14 @@ static void destroylocksurface(struct wl_listener *listener, void *data);
+ static void destroynotify(struct wl_listener *listener, void *data);
+ static void destroysessionlock(struct wl_listener *listener, void *data);
+ static void destroysessionmgr(struct wl_listener *listener, void *data);
++static void destroypointerconstraint(struct wl_listener *listener, void *data);
+ static Monitor *dirtomon(enum wlr_direction dir);
+ static void focusclient(Client *c, int lift);
+ static void focusmon(const Arg *arg);
+ static void focusstack(const Arg *arg);
+ static Client *focustop(Monitor *m);
+ static void fullscreennotify(struct wl_listener *listener, void *data);
++static void handleconstraintcommit(struct wl_listener *listener, void *data);
+ static void handlesig(int signo);
+ static void incnmaster(const Arg *arg);
+ static void inputdevice(struct wl_listener *listener, void *data);
+@@ -377,6 +391,11 @@ static struct wlr_box sgeom;
+ static struct wl_list mons;
+ static Monitor *selmon;
+ 
++struct wlr_pointer_constraints_v1 *pointer_constraints;
++struct wlr_pointer_constraint_v1 *active_constraint;
++static struct wl_listener constraint_commit;
++struct wlr_relative_pointer_manager_v1 *relative_pointer_manager;
++
+ #ifdef XWAYLAND
+ static void activatex11(struct wl_listener *listener, void *data);
+ static void associatex11(struct wl_listener *listener, void *data);
+@@ -930,6 +949,30 @@ createmon(struct wl_listener *listener, void *data)
+ 	strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, LENGTH(m->ltsymbol));
+ }
+ 
++void
++createpointerconstraint(struct wl_listener *listener, void *data)
++{
++	if (focustop(selmon)) {
++		struct wlr_pointer_constraint_v1 *constraint = data;
++		struct pointer_constraint *pointer_constraint = calloc(1, sizeof(struct pointer_constraint));
++		pointer_constraint->constraint = constraint;
++
++		pointer_constraint->destroy.notify = destroypointerconstraint;
++		wl_signal_add(&constraint->events.destroy, &pointer_constraint->destroy);
++
++		if (client_surface(focustop(selmon)) == constraint->surface) {
++			if (allow_constrain == 0 || active_constraint == constraint)
++				return;
++
++			active_constraint = constraint;
++			wlr_pointer_constraint_v1_send_activated(constraint);
++
++			constraint_commit.notify = handleconstraintcommit;
++			wl_signal_add(&constraint->surface->events.commit, &constraint_commit);
++		}
++	}
++}
++
+ void
+ createnotify(struct wl_listener *listener, void *data)
+ {
+@@ -1022,6 +1065,25 @@ createpointer(struct wlr_pointer *pointer)
+ 	wlr_cursor_attach_input_device(cursor, &pointer->base);
+ }
+ 
++void
++destroypointerconstraint(struct wl_listener *listener, void *data)
++{
++	struct wlr_pointer_constraint_v1 *constraint = data;
++	struct pointer_constraint *pointer_constraint = wl_container_of(listener, pointer_constraint, destroy);
++
++	wl_list_remove(&pointer_constraint->destroy.link);
++
++	if (active_constraint == constraint) {
++		if (constraint_commit.link.next != NULL) {
++			wl_list_remove(&constraint_commit.link);
++		}
++		wl_list_init(&constraint_commit.link);
++		active_constraint = NULL;
++	}
++
++	free(pointer_constraint);
++}
++
+ void
+ cursorframe(struct wl_listener *listener, void *data)
+ {
+@@ -1316,6 +1378,12 @@ handlesig(int signo)
+ 	}
+ }
+ 
++void
++handleconstraintcommit(struct wl_listener *listener, void *data)
++{
++	assert(active_constraint->surface == data);
++}
++
+ void
+ incnmaster(const Arg *arg)
+ {
+@@ -1676,7 +1744,15 @@ motionrelative(struct wl_listener *listener, void *data)
+ 	 * special configuration applied for the specific input device which
+ 	 * generated the event. You can pass NULL for the device if you want to move
+ 	 * the cursor around without any input. */
+-	wlr_cursor_move(cursor, &event->pointer->base, event->delta_x, event->delta_y);
++	wlr_relative_pointer_manager_v1_send_relative_motion(
++		relative_pointer_manager,
++		seat, (uint64_t)event->time_msec * 1000,
++		event->delta_x, event->delta_y, event->unaccel_dx, event->unaccel_dy);
++
++	if (!active_constraint) {
++		wlr_cursor_move(cursor, &event->pointer->base,
++			event->delta_x, event->delta_y);
++	}
+ 	motionnotify(event->time_msec);
+ }
+ 
+@@ -2282,6 +2358,11 @@ setup(void)
+ 	xdg_decoration_mgr = wlr_xdg_decoration_manager_v1_create(dpy);
+ 	LISTEN_STATIC(&xdg_decoration_mgr->events.new_toplevel_decoration, createdecoration);
+ 
++	pointer_constraints = wlr_pointer_constraints_v1_create(dpy);
++	LISTEN_STATIC(&pointer_constraints->events.new_constraint, createpointerconstraint);
++
++	relative_pointer_manager = wlr_relative_pointer_manager_v1_create(dpy);
++
+ 	/*
+ 	 * Creates a cursor, which is a wlroots utility for tracking the cursor
+ 	 * image shown on screen.

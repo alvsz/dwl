@@ -1,0 +1,303 @@
+From d08e6a3a7e9ccf47720b2e63f298c97292f85ebf Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 01:22:48 -0600
+Subject: [PATCH 01/10] include CHANGELOG.md in the tarball
+
+Fixes: 24576f1fdf56bc8879203bb2d7e7cd116d4bba42
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 6cde460cd..f0ff805b7 100644
+--- a/Makefile
++++ b/Makefile
+@@ -42,7 +42,7 @@ clean:
+ 
+ dist: clean
+ 	mkdir -p dwl-$(VERSION)
+-	cp -R LICENSE* Makefile README.md client.h config.def.h\
++	cp -R LICENSE* Makefile CHANGELOG.md README.md client.h config.def.h\
+ 		config.mk protocols dwl.1 dwl.c util.c util.h dwl.desktop\
+ 		dwl-$(VERSION)
+ 	tar -caf dwl-$(VERSION).tar.gz dwl-$(VERSION)
+
+From 66ef4ecfec46eb95cc8db8d9d66502b3578d723c Mon Sep 17 00:00:00 2001
+From: Squibid <me@zacharyscheiman.com>
+Date: Sat, 25 Nov 2023 03:42:27 -0500
+Subject: [PATCH 02/10] Change github links to codeberg links in README.md
+
+---
+ README.md | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/README.md b/README.md
+index 62ae87282..820828f1b 100644
+--- a/README.md
++++ b/README.md
+@@ -39,7 +39,7 @@ Features under consideration (possibly as patches) are:
+ - Protocols made trivial by wlroots
+ - Implement the text-input and input-method protocols to support IME once ibus
+   implements input-method v2 (see https://github.com/ibus/ibus/pull/2256 and
+-  https://github.com/djpohly/dwl/pull/235)
++  https://codeberg.org/dwl/dwl/pulls/235)
+ 
+ Feature *non-goals* for the main codebase include:
+ 
+@@ -162,12 +162,12 @@ inspiration, and to the various contributors to the project, including:
+ [#dwl on Libera Chat]: https://web.libera.chat/?channels=#dwl
+ [Wayland]: https://wayland.freedesktop.org/
+ [wlroots]: https://gitlab.freedesktop.org/wlroots/wlroots/
+-[wlroots-next branch]: https://github.com/djpohly/dwl/tree/wlroots-next
+-[patches page on our wiki]: https://github.com/djpohly/dwl/wiki/Patches
++[wlroots-next branch]: https://codeberg.org/dwl/dwl/src/branch/wlroots-next
++[patches page on our wiki]: https://codeberg.org/dwl/dwl/wiki/Patches
+ [s6]: https://skarnet.org/software/s6/
+ [anopa]: https://jjacky.com/anopa/
+ [runit]: http://smarden.org/runit/faq.html#userservices
+ [`systemd --user`]: https://wiki.archlinux.org/title/Systemd/User
+-[wiki]: https://github.com/djpohly/dwl/wiki#compatible-status-bars
++[wiki]: https://codeberg.org/dwl/dwl/wiki/Home#compatible-status-bars
+ [list of useful resources on our wiki]:
+-    https://github.com/djpohly/dwl/wiki#migrating-from-x
++    https://codeberg.org/dwl/dwl/wiki/Home#migrating-from-x
+
+From 2783e82bf847e9f3e46f9d09037799a31d12c9ad Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 18:50:42 -0600
+Subject: [PATCH 03/10] make sure to unlink Monitor.request_state listener
+
+---
+ dwl.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/dwl.c b/dwl.c
+index ef27a1d38..5725bf197 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -661,13 +661,15 @@ cleanupmon(struct wl_listener *listener, void *data)
+ 	LayerSurface *l, *tmp;
+ 	int i;
+ 
+-	for (i = 0; i <= ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY; i++)
++	/* m->layers[i] are intentionally not unlinked */
++	for (i = 0; i < LENGTH(m->layers); i++)
+ 		wl_list_for_each_safe(l, tmp, &m->layers[i], link)
+ 			wlr_layer_surface_v1_destroy(l->layer_surface);
+ 
+ 	wl_list_remove(&m->destroy.link);
+ 	wl_list_remove(&m->frame.link);
+ 	wl_list_remove(&m->link);
++	wl_list_remove(&m->request_state.link);
+ 	m->wlr_output->data = NULL;
+ 	wlr_output_layout_remove(output_layout, m->wlr_output);
+ 	wlr_scene_output_destroy(m->scene_output);
+
+From 922e117fc5fd03faebd8f23e127fb75d21b83f24 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 19:04:08 -0600
+Subject: [PATCH 04/10] add new 'unreleased' section
+
+---
+ CHANGELOG.md | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index ac0f3f2af..366728ddf 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,7 +1,19 @@
+ # Changelog
+ 
++* [Unreleased](#unreleased)
+ * [0.5](#0.5)
+ 
++
++## Unreleased
++### Added
++### Changed
++### Deprecated
++### Removed
++### Fixed
++### Security
++### Contributors
++
++
+ ## 0.5
+ 
+ ### Added
+
+From 1f10e69b4ccaf5ba335b4584db3c42190b45ffe6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:40:13 -0600
+Subject: [PATCH 05/10] use sizeof(*pointer) instead of sizeof(struct)
+
+---
+ dwl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dwl.c b/dwl.c
+index 5725bf197..c0c5c086a 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -815,7 +815,7 @@ createlayersurface(struct wl_listener *listener, void *data)
+ 		return;
+ 	}
+ 
+-	layersurface = wlr_layer_surface->data = ecalloc(1, sizeof(LayerSurface));
++	layersurface = wlr_layer_surface->data = ecalloc(1, sizeof(*layersurface));
+ 	layersurface->type = LayerShell;
+ 	LISTEN(&wlr_layer_surface->surface->events.commit,
+ 			&layersurface->surface_commit, commitlayersurfacenotify);
+
+From 66ec028b0056b834442a7ede6544eae8709946c0 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:39:16 -0600
+Subject: [PATCH 06/10] simplify check for wlr_layer_surface.output
+
+---
+ dwl.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index c0c5c086a..ea0a79150 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -807,10 +807,8 @@ createlayersurface(struct wl_listener *listener, void *data)
+ 	struct wlr_layer_surface_v1_state old_state;
+ 	struct wlr_scene_tree *l = layers[layermap[wlr_layer_surface->pending.layer]];
+ 
+-	if (!wlr_layer_surface->output)
+-		wlr_layer_surface->output = selmon ? selmon->wlr_output : NULL;
+-
+-	if (!wlr_layer_surface->output) {
++	if (!wlr_layer_surface->output
++			&& !(wlr_layer_surface->output = selmon ? selmon->wlr_output : NULL)) {
+ 		wlr_layer_surface_v1_destroy(wlr_layer_surface);
+ 		return;
+ 	}
+
+From a353eee2cac0378a4201e408a3417aa107a7f647 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:48:54 -0600
+Subject: [PATCH 07/10] simplify settings popups scene tree parent
+
+---
+ dwl.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/dwl.c b/dwl.c
+index ea0a79150..8500f2b27 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -720,13 +720,12 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
+ 
+ 	if (layer != layersurface->scene->node.parent) {
+ 		wlr_scene_node_reparent(&layersurface->scene->node, layer);
+-		wlr_scene_node_reparent(&layersurface->popups->node, layer);
+ 		wl_list_remove(&layersurface->link);
+ 		wl_list_insert(&layersurface->mon->layers[wlr_layer_surface->current.layer],
+ 				&layersurface->link);
++		wlr_scene_node_reparent(&layersurface->popups->node, (wlr_layer_surface->current.layer
++				< ZWLR_LAYER_SHELL_V1_LAYER_TOP ? layers[LyrTop] : layer));
+ 	}
+-	if (wlr_layer_surface->current.layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP)
+-		wlr_scene_node_reparent(&layersurface->popups->node, layers[LyrTop]);
+ 
+ 	if (wlr_layer_surface->current.committed == 0
+ 			&& layersurface->mapped == wlr_layer_surface->surface->mapped)
+
+From 39f4ee564b153966b0219004293d16900d2356d1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 12:35:38 -0600
+Subject: [PATCH 08/10] use wlr_box_equal() instead of memcmp
+
+---
+ dwl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dwl.c b/dwl.c
+index 8500f2b27..b589378c6 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -504,7 +504,7 @@ arrangelayers(Monitor *m)
+ 	for (i = 3; i >= 0; i--)
+ 		arrangelayer(m, &m->layers[i], &usable_area, 1);
+ 
+-	if (memcmp(&usable_area, &m->w, sizeof(struct wlr_box))) {
++	if (!wlr_box_equal(&usable_area, &m->w)) {
+ 		m->w = usable_area;
+ 		arrange(m);
+ 	}
+
+From a5e068b20a04357b4fc709b1c6f3b698b4dc7094 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Leonardo=20Hern=C3=A1ndez=20Hern=C3=A1ndez?=
+ <leohdz172@proton.me>
+Date: Sat, 25 Nov 2023 13:30:56 -0600
+Subject: [PATCH 09/10] destroy the layer-suface's scene tree for popups
+
+---
+ dwl.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dwl.c b/dwl.c
+index b589378c6..6a96179ca 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -1067,6 +1067,7 @@ destroylayersurfacenotify(struct wl_listener *listener, void *data)
+ 	wl_list_remove(&layersurface->unmap.link);
+ 	wl_list_remove(&layersurface->surface_commit.link);
+ 	wlr_scene_node_destroy(&layersurface->scene->node);
++	wlr_scene_node_destroy(&layersurface->popups->node);
+ 	free(layersurface);
+ }
+ 
+
+From 1e1fd2e1ec86928b37f802a12e905931f9152b92 Mon Sep 17 00:00:00 2001
+From: Dima Krasner <dima@dimakrasner.com>
+Date: Thu, 21 Jul 2022 21:26:31 +0300
+Subject: [PATCH 10/10] fall back to a lower output mode if needed
+ (swaywm/sway@4cdc4ac)
+
+---
+ dwl.c | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/dwl.c b/dwl.c
+index 6a96179ca..358a891f6 100644
+--- a/dwl.c
++++ b/dwl.c
+@@ -869,6 +869,7 @@ createmon(struct wl_listener *listener, void *data)
+ 	/* This event is raised by the backend when a new output (aka a display or
+ 	 * monitor) becomes available. */
+ 	struct wlr_output *wlr_output = data;
++	struct wlr_output_mode *preferred_mode, *mode;
+ 	const MonitorRule *r;
+ 	size_t i;
+ 	Monitor *m = wlr_output->data = ecalloc(1, sizeof(*m));
+@@ -897,7 +898,17 @@ createmon(struct wl_listener *listener, void *data)
+ 	 * monitor supports only a specific set of modes. We just pick the
+ 	 * monitor's preferred mode; a more sophisticated compositor would let
+ 	 * the user configure it. */
+-	wlr_output_set_mode(wlr_output, wlr_output_preferred_mode(wlr_output));
++	preferred_mode = wlr_output_preferred_mode(wlr_output);
++	wlr_output_set_mode(wlr_output, preferred_mode);
++	if (!wlr_output_test(wlr_output) && !wl_list_empty(&wlr_output->modes)) {
++		wl_list_for_each(mode, &wlr_output->modes, link) {
++			if (mode != preferred_mode) {
++				wlr_output_set_mode(wlr_output, mode);
++				if (wlr_output_test(wlr_output))
++					break;
++			}
++		}
++	}
+ 
+ 	/* Set up event listeners */
+ 	LISTEN(&wlr_output->events.frame, &m->frame, rendermon);

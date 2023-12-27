@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=dwl
+Comment=dwm for Wayland
+Exec=sh -lc 'XDG_CURRENT_DESKTOP=wlr exec dwl'
+Type=Application
