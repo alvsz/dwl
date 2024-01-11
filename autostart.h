@@ -26,8 +26,10 @@ static const char *const autostart[] = {
 
     "sh", "-c", "scratchpad vdirsyncer sync", NULL,
 
-    "swww", "init", NULL,
-    "sh", "-c", "swww img $HOME/Imagens/EOS-SnowCappedMountain02.jpg", NULL,
+    "waypaper", "--restore", NULL,
+
+    // "swww", "init", NULL,
+    // "sh", "-c", "swww img $HOME/Imagens/EOS-SnowCappedMountain02.jpg", NULL,
 
     "sh", "-c", "/usr/lib/kdeconnectd", NULL,
     "sh", "-c", "sleep 5; kdeconnect-indicator", NULL,
