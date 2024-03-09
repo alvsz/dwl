@@ -71,8 +71,8 @@ static const Key keys[] = {
     { MODKEY,                                            XKB_KEY_0,                  view,           {.ui = ~0} },
     { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_parenright,         tag,            {.ui = ~0} },
 
-    { MODKEY,                                            XKB_KEY_r,                  spawn,          SHCMD("eww open dashboard-wayland --toggle") },
-    { MODKEY,                                            XKB_KEY_c,                  spawn,          SHCMD("ags -t controlCenter") },
+    { MODKEY,                                            XKB_KEY_r,                  spawn,          SHCMD("ags -t dashboard") },
+    { MODKEY,                                            XKB_KEY_c,                  spawn,          SHCMD("ags -t calendar") },
 
     { 0,                                                 XF86XK_AudioStop,           spawn,          SHCMD("midia stop") },
     { 0,                                                 XF86XK_AudioPrev,           spawn,          SHCMD("midia previous") },
