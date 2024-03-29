@@ -16,7 +16,6 @@ static const Key keys[] = {
     { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_Q,            quit,               {0} },
 
     /* -------- layouts -------- */
-    { MODKEY,                                            XKB_KEY_y,            setlayout,          {.v = &layouts[3]} },
     { MODKEY,                                            XKB_KEY_u,            setlayout,          {.v = &layouts[0]} },
     { MODKEY,                                            XKB_KEY_i,            setlayout,          {.v = &layouts[1]} },
     { MODKEY,                                            XKB_KEY_o,            setlayout,          {.v = &layouts[2]} },
