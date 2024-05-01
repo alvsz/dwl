@@ -13,11 +13,20 @@ PKGS      = wlroots wayland-server xkbcommon libinput $(XLIBS)
 DWLCFLAGS = `$(PKG_CONFIG) --cflags $(PKGS)` $(DWLCPPFLAGS) $(DWLDEVCFLAGS) $(CFLAGS)
 LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` $(LIBS)
 
-all: dwl
+all: dwl dwlmsg
+
 dwl: dwl.o util.o dwl-ipc-unstable-v2-protocol.o
 	$(CC) dwl.o util.o dwl-ipc-unstable-v2-protocol.o $(LDLIBS) $(LDFLAGS) $(DWLCFLAGS) -o $@
+
 dwl.o: dwl.c config.mk config.h client.h cursor-shape-v1-protocol.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h dwl-ipc-unstable-v2-protocol.h pointer-constraints-unstable-v1-protocol.h
+
 util.o: util.c util.h
+
+dwlmsg: dwlmsg.o dwl-ipc-unstable-v2-protocol.o
+	$(CC) $^ -lwayland-client -o $@
+
+dwlmsg.o: dwlmsg.c dwl-ipc-unstable-v2-protocol.h
+
 dwl-ipc-unstable-v2-protocol.o: dwl-ipc-unstable-v2-protocol.h
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
@@ -29,18 +38,23 @@ WAYLAND_PROTOCOLS = `$(PKG_CONFIG) --variable=pkgdatadir wayland-protocols`
 xdg-shell-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		$(WAYLAND_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml $@
+
 pointer-constraints-unstable-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		$(WAYLAND_PROTOCOLS)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml $@
+
 wlr-layer-shell-unstable-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/wlr-layer-shell-unstable-v1.xml $@
+
 cursor-shape-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		$(WAYLAND_PROTOCOLS)/staging/cursor-shape/cursor-shape-v1.xml $@
+
 dwl-ipc-unstable-v2-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/dwl-ipc-unstable-v2.xml $@
+
 dwl-ipc-unstable-v2-protocol.c:
 	$(WAYLAND_SCANNER) private-code \
 		protocols/dwl-ipc-unstable-v2.xml $@
@@ -48,7 +62,7 @@ dwl-ipc-unstable-v2-protocol.c:
 config.h:
 	cp config.def.h $@
 clean:
-	rm -f dwl *.o *-protocol.h
+	rm -f dwl dwlmsg *.o *-protocol.h
 
 dist: clean
 	mkdir -p dwl-$(VERSION)
@@ -68,6 +82,7 @@ install: dwl
 	mkdir -p $(DESTDIR)$(DATADIR)/wayland-sessions
 	cp -f dwl.desktop $(DESTDIR)$(DATADIR)/wayland-sessions/dwl.desktop
 	chmod 644 $(DESTDIR)$(DATADIR)/wayland-sessions/dwl.desktop
+	cp -f dwlmsg $(DESTDIR)$(PREFIX)/bin
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/dwl $(DESTDIR)$(MANDIR)/man1/dwl.1 $(DESTDIR)$(DATADIR)/wayland-sessions/dwl.desktop
 
