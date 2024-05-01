@@ -25,7 +25,7 @@ util.o: util.c util.h
 dwlmsg: dwlmsg.o dwl-ipc-unstable-v2-protocol.o
 	$(CC) $^ -lwayland-client -o $@
 
-dwlmsg.o: dwlmsg.c dwl-ipc-unstable-v2-protocol.h
+dwlmsg.o: dwlmsg.c dwl-ipc-unstable-v2-protocol-client.h
 
 dwl-ipc-unstable-v2-protocol-server.o: dwl-ipc-unstable-v2-protocol-server.h
 	
