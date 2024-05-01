@@ -65,7 +65,7 @@
 #include <xcb/xcb_icccm.h>
 #endif
 
-#include "dwl-ipc-unstable-v2-protocol.h"
+#include "dwl-ipc-unstable-v2-protocol-server.h"
 #include "util.h"
 
 /* macros */

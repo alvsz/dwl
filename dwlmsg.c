@@ -5,7 +5,7 @@
 #include <string.h>
 #include <wayland-client.h>
 #include <wayland-util.h>
-#include "dwl-ipc-unstable-v2-protocol.h"
+#include "dwl-ipc-unstable-v2-protocol-client.h"
 
 #define die(fmt, ...)	do { fprintf(stderr, fmt "\n", ##__VA_ARGS__); exit(EXIT_FAILURE); } while (0)
 
