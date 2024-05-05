@@ -18,18 +18,18 @@ all: dwl dwlmsg
 dwl: dwl.o util.o dwl-ipc-unstable-v2-protocol.o
 	$(CC) dwl.o util.o dwl-ipc-unstable-v2-protocol.o $(LDLIBS) $(LDFLAGS) $(DWLCFLAGS) -o $@
 
-dwl.o: dwl.c config.mk config.h client.h cursor-shape-v1-protocol.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h dwl-ipc-unstable-v2-protocol-server.h pointer-constraints-unstable-v1-protocol.h
+dwl.o: dwl.c config.mk config.h client.h cursor-shape-v1-protocol.h xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h dwl-ipc-unstable-v2-server-protocol.h pointer-constraints-unstable-v1-protocol.h
 
 util.o: util.c util.h
 
 dwlmsg: dwlmsg.o dwl-ipc-unstable-v2-protocol.o
 	$(CC) $^ -lwayland-client -o $@
 
-dwlmsg.o: dwlmsg.c dwl-ipc-unstable-v2-protocol-client.h
+dwlmsg.o: dwlmsg.c dwl-ipc-unstable-v2-client-protocol.h
 
-dwl-ipc-unstable-v2-protocol-server.o: dwl-ipc-unstable-v2-protocol-server.h
+dwl-ipc-unstable-v2-protocol-server.o: dwl-ipc-unstable-v2-server-protocol.h
 	
-dwl-ipc-unstable-v2-protocol-client.o: dwl-ipc-unstable-v2-protocol-client.h
+dwl-ipc-unstable-v2-protocol-client.o: dwl-ipc-unstable-v2-client-protocol.h
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
 # protocols, which are specified in XML. wlroots requires you to rig these up
@@ -53,11 +53,11 @@ cursor-shape-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		$(WAYLAND_PROTOCOLS)/staging/cursor-shape/cursor-shape-v1.xml $@
 
-dwl-ipc-unstable-v2-protocol-server.h:
+dwl-ipc-unstable-v2-server-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		protocols/dwl-ipc-unstable-v2.xml $@
 
-dwl-ipc-unstable-v2-protocol-client.h:
+dwl-ipc-unstable-v2-client-protocol.h:
 	$(WAYLAND_SCANNER) client-header \
 		protocols/dwl-ipc-unstable-v2.xml $@
 

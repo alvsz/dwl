@@ -1,5 +1,5 @@
 // #include "dwl-ipc-unstable-v2-protocol.h"
-#include "dwl-ipc-unstable-v2-protocol-client.h"
+#include "dwl-ipc-unstable-v2-client-protocol.h"
 #include <poll.h>
 #include <stddef.h>
 #include <stdio.h>
