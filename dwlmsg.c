@@ -308,6 +308,29 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = global_remove,
 };
 
+void escape_special_characters(char *str) {
+  char *p = str;
+  while (*p) {
+    switch (*p) {
+    case '\"':
+    case '\\':
+    case '/':
+    case '\b':
+    case '\f':
+    case '\n':
+    case '\r':
+    case '\t':
+      putchar('\\');
+      putchar(*p);
+      break;
+    default:
+      putchar(*p);
+      break;
+    }
+    p++;
+  }
+}
+
 void print_status() {
   printf("[ ");
   for (size_t i = 0; i < outputcount; i++) {
@@ -316,9 +339,19 @@ void print_status() {
 
     printf("{ ");
     printf("\"id\": %u, ", outputs[i].name);
-    printf("\"name\": \"%s\", ", outputs[i].output_name);
-    printf("\"title\": \"%s\", ", outputs[i].title);
-    printf("\"appid\": \"%s\", ", outputs[i].appid);
+
+    printf("\"name\": \"");
+    escape_special_characters(outputs[i].output_name);
+    printf("\", ");
+
+    printf("\"title\": \"");
+    escape_special_characters(outputs[i].title);
+    printf("\", ");
+
+    printf("\"appid\": \"");
+    escape_special_characters(outputs[i].appid);
+    printf("\", ");
+
     printf("\"active\": %u, ", outputs[i].active);
 
     printf("\"layouts\": { ");
