@@ -99,7 +99,10 @@ static const struct zdwl_ipc_manager_v2_listener dwl_ipc_listener = {
 static void
 dwl_ipc_output_toggle_visibility(void *data,
                                  struct zdwl_ipc_output_v2 *dwl_ipc_output) {
-  // fprintf(stderr, "output toggle visibility event\n");
+  struct output *o = (struct output *)data;
+
+  // fprintf(stderr, "output toggle visibility event no monitor %s\n",
+  // o->output_name);
 }
 
 static void dwl_ipc_output_active(void *data,
@@ -121,14 +124,16 @@ static void dwl_ipc_output_tag(void *data,
   o->tags = realloc(o->tags, (tag_index + 1) * sizeof(struct tag));
 
   if (!o->tags) {
-    // fprintf(stderr, "sem memória para a tag %ul no monitor %s", tag_index,
-    //         o->output_name);
+    fprintf(stderr, "sem memória para a tag %ul no monitor %s", tag_index,
+            o->output_name);
     die("sem memória para a tag");
   }
 
   o->tags[tag_index].state = state;
   o->tags[tag_index].clients = clients;
   o->tags[tag_index].focused = focused;
+
+  // fprintf(stderr, "novo evento de tag no monitor %s\n", o->output_name);
 }
 
 static void dwl_ipc_output_layout(void *data,
@@ -142,7 +147,7 @@ static void dwl_ipc_output_layout_symbol(
   o->old_layout = o->new_layout;
   o->new_layout = get_layout(layout);
   // fprintf(stderr, "novo layout no monitor %s: %s\n", o->output_name,
-  //         o->new_layout.layout_name);
+  // o->new_layout.layout_name);
 }
 
 static void dwl_ipc_output_title(void *data,
@@ -184,8 +189,7 @@ static void dwl_ipc_output_floating(void *data,
   o->floating = is_floating;
 
   // fprintf(stderr, "output floating event no monitor %s: %u\n",
-  // o->output_name,
-  //         o->floating);
+  // o->output_name, o->floating);
 }
 
 static void dwl_ipc_output_frame(void *data,
@@ -194,9 +198,9 @@ static void dwl_ipc_output_frame(void *data,
 
   uint32_t index = get_index_of_output(o->name);
 
-  // printf("evento frame no monitor %s\n", o->output_name);
-  // printf("index do monitor: %u\n", index);
-  //
+  printf("evento frame no monitor %s\n", o->output_name);
+  printf("index do monitor: %u\n", index);
+
   outputs[index] = *o;
 
   // for (size_t i = 0; i < outputcount; i++) {
@@ -226,17 +230,22 @@ static void wl_output_name(void *data, struct wl_output *output,
   if (outputs && dwl_ipc_manager) {
     struct output *o = (struct output *)data;
 
-    struct zdwl_ipc_output_v2 *dwl_ipc_output =
-        zdwl_ipc_manager_v2_get_output(dwl_ipc_manager, output);
-
     if (!o)
       die("bugou alguma coisa");
 
     o->output_name = strdup(name);
-    // printf("+ ");
+
+    // fprintf(stderr, "nome do novo monitor: %s\n", o->output_name);
+
+    struct zdwl_ipc_output_v2 *dwl_ipc_output =
+        zdwl_ipc_manager_v2_get_output(dwl_ipc_manager, output);
+
+    // fprintf(stderr, "criado o ipc_output para o monitor\n");
 
     zdwl_ipc_output_v2_add_listener(dwl_ipc_output, &dwl_ipc_output_listener,
                                     o);
+
+    // fprintf(stderr, "setou o listener\n");
   } else
     die("bugou o outputs ou o ipc manager");
 }
@@ -257,6 +266,8 @@ static void global_add(void *data, struct wl_registry *wl_registry,
     struct wl_output *o = wl_registry_bind(
         wl_registry, name, &wl_output_interface, WL_OUTPUT_NAME_SINCE_VERSION);
 
+    // fprintf(stderr, "monitor novo\n");
+
     outputs = realloc(outputs, ++outputcount * sizeof(struct output));
 
     if (!outputs)
@@ -265,8 +276,12 @@ static void global_add(void *data, struct wl_registry *wl_registry,
     outputs[outputcount - 1].name = name;
     outputs[outputcount - 1].output = o;
 
+    // fprintf(stderr, "setou o nome\n");
+
     wl_output_add_listener(o, &output_listener,
                            outputs ? &outputs[outputcount - 1] : NULL);
+
+    // fprintf(stderr, "criou o listener\n");
 
     // fprintf(stderr, "novo output detectado: %u\n",
     //         outputs[outputcount - 1].name);
@@ -403,6 +418,8 @@ int main(int argc, char *argv[]) {
     die("bad dwl-ipc protocol");
 
   wl_display_roundtrip(display);
+
+  print_status();
 
   while (wl_display_dispatch(display) != -1)
     print_status();
