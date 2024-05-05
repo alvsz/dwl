@@ -287,7 +287,7 @@ static void global_remove(void *data, struct wl_registry *wl_registry,
     return;
   for (size_t i = 0; i < outputcount; i++) {
     if (outputs[i].name == name) {
-      printf("output removido: %s\n", outputs[i].output_name);
+      // printf("output removido: %s\n", outputs[i].output_name);
 
       wl_output_release(outputs[i].output);
       free(outputs[i].output_name);
