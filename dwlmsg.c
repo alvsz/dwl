@@ -354,7 +354,7 @@ void print_status() {
 
     printf("\"active\": %u, ", outputs[i].active);
 
-    printf("\"layouts\": { ");
+    printf("\"layout\": { ");
 
     printf("\"new\": {\"index\": %u, \"symbol\": \"%s\"}, ",
            outputs[i].new_layout.index, outputs[i].new_layout.layout_name);
