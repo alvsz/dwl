@@ -198,8 +198,8 @@ static void dwl_ipc_output_frame(void *data,
 
   uint32_t index = get_index_of_output(o->name);
 
-  printf("evento frame no monitor %s\n", o->output_name);
-  printf("index do monitor: %u\n", index);
+  // fprintf(stderr, "evento frame no monitor %s\n", o->output_name);
+  // fprintf(stderr, "index do monitor: %u\n", index);
 
   outputs[index] = *o;
 
