@@ -425,7 +425,7 @@ int main(int argc, char *argv[]) {
 
       while (wl_display_dispatch(display) != -1)
         print_status();
-    } else if (strcmp(argv[1], "status"))
+    } else if (strcmp(argv[1], "status") == 0)
       print_status();
   }
 
