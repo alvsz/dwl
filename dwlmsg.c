@@ -419,10 +419,15 @@ int main(int argc, char *argv[]) {
 
   wl_display_roundtrip(display);
 
-  print_status();
+  if (argc >= 2) {
+    if (strcmp(argv[1], "follow") == 0) {
+      print_status();
 
-  while (wl_display_dispatch(display) != -1)
-    print_status();
+      while (wl_display_dispatch(display) != -1)
+        print_status();
+    } else if (strcmp(argv[1], "status"))
+      print_status();
+  }
 
   return 0;
 }
