@@ -58,14 +58,12 @@ static struct zdwl_ipc_manager_v2 *dwl_ipc_manager;
 
 static void noop() {}
 
-static void dwl_ipc_tags(void *data,
-                         struct zdwl_ipc_manager_v2 *dwl_ipc_manager,
+static void dwl_ipc_tags(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
                          uint32_t count) {
   tagcount = count;
 }
 
-static void dwl_ipc_layout(void *data,
-                           struct zdwl_ipc_manager_v2 *dwl_ipc_manager,
+static void dwl_ipc_layout(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
                            const char *name) {
   // fprintf(stderr, "novo layout detectado: %s\n", name);
   layouts = realloc(layouts, ++layoutcount * sizeof(struct layout));
@@ -228,14 +226,14 @@ static void wl_output_name(void *data, struct wl_output *output,
   if (outputs && dwl_ipc_manager) {
     struct output *o = (struct output *)data;
 
+    struct zdwl_ipc_output_v2 *dwl_ipc_output =
+        zdwl_ipc_manager_v2_get_output(dwl_ipc_manager, output);
+
     if (!o)
       die("bugou alguma coisa");
 
     o->output_name = strdup(name);
     // printf("+ ");
-
-    struct zdwl_ipc_output_v2 *dwl_ipc_output =
-        zdwl_ipc_manager_v2_get_output(dwl_ipc_manager, output);
 
     zdwl_ipc_output_v2_add_listener(dwl_ipc_output, &dwl_ipc_output_listener,
                                     o);
