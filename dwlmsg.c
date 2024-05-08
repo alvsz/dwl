@@ -69,7 +69,7 @@ static void dwl_ipc_layout(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
   layouts = realloc(layouts, ++layoutcount * sizeof(struct layout));
 
   if (!layouts)
-    die("não tem memória");
+    die("não tem memória para o layout");
 
   layouts[layoutcount - 1].layout_name = strdup(name);
   layouts[layoutcount - 1].index = layoutcount - 1;
@@ -271,7 +271,7 @@ static void global_add(void *data, struct wl_registry *wl_registry,
     outputs = realloc(outputs, ++outputcount * sizeof(struct output));
 
     if (!outputs)
-      die("não tem memória");
+      die("não tem memória para o output");
 
     outputs[outputcount - 1].name = name;
     outputs[outputcount - 1].output = o;
@@ -312,8 +312,8 @@ static void global_remove(void *data, struct wl_registry *wl_registry,
 
       outputs = realloc(outputs, --outputcount * sizeof(struct output));
 
-      if (!outputs)
-        die("não tem memória");
+      if (!outputs && outputcount)
+        die("não tem memória para o output");
     }
   }
 }
