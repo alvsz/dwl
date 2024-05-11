@@ -130,7 +130,7 @@ static void dwl_ipc_output_tag(void *data,
   o->tags = realloc(o->tags, (tag_index + 1) * sizeof(struct tag));
 
   if (!o->tags) {
-    fprintf(stderr, "sem memória para a tag %ul no monitor %s", tag_index,
+    fprintf(stderr, "sem memória para a tag %ul no monitor %s\n", tag_index,
             o->output_name);
     die("sem memória para a tag");
   }
@@ -217,11 +217,11 @@ static void dwl_ipc_output_frame(void *data,
     fprintf(stderr, "index do monitor: %u\n", index);
   }
 
-  // outputs[index] = *o;
+  outputs[index] = *o;
 
-  // for (size_t i = 0; i < outputcount; i++) {
-  //   printf("monitor %s:\n", outputs[i].output_name);
-  // }
+  for (size_t i = 0; i < outputcount; i++) {
+    printf("monitor %s:\n", outputs[i].output_name);
+  }
 
   fflush(stdout);
 }
@@ -250,7 +250,7 @@ static void wl_output_name(void *data, struct wl_output *output,
     if (!o)
       die("bugou alguma coisa");
 
-    o->output_name = strdup(name);
+    // o->output_name = strdup(name);
 
     if (debug)
       fprintf(stderr, "nome do novo monitor: %s\n", o->output_name);
@@ -325,6 +325,7 @@ static void global_remove(void *data, struct wl_registry *wl_registry,
                           uint32_t name) {
   if (!outputs)
     return;
+
   for (size_t i = 0; i < outputcount; i++) {
     if (outputs[i].name == name) {
       if (debug)
@@ -336,7 +337,7 @@ static void global_remove(void *data, struct wl_registry *wl_registry,
       // free(outputs[i].appid);
       // free(outputs[i].title);
 
-      outputs = realloc(outputs, --outputcount * sizeof(struct output));
+      // outputs = realloc(outputs, --outputcount * sizeof(struct output));
 
       if (!outputs && outputcount)
         die("não tem memória para o output");
