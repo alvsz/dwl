@@ -207,9 +207,10 @@ static void dwl_ipc_output_floating(void *data,
 
 static void dwl_ipc_output_frame(void *data,
                                  struct zdwl_ipc_output_v2 *dwl_ipc_output) {
+  uint32_t index;
   struct output *o = (struct output *)data;
 
-  uint32_t index = get_index_of_output(o->name);
+  index = get_index_of_output(o->name);
 
   if (debug) {
     fprintf(stderr, "evento frame no monitor %s\n", o->output_name);
