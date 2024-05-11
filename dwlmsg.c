@@ -20,6 +20,8 @@ struct layout {
   uint32_t index;
 };
 
+int debug = 0;
+
 static struct layout *layouts;
 static size_t layoutcount;
 
@@ -65,7 +67,9 @@ static void dwl_ipc_tags(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
 
 static void dwl_ipc_layout(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
                            const char *name) {
-  // fprintf(stderr, "novo layout detectado: %s\n", name);
+  if (debug)
+    fprintf(stderr, "novo layout detectado: %s\n", name);
+
   layouts = realloc(layouts, ++layoutcount * sizeof(struct layout));
 
   if (!layouts)
@@ -73,7 +77,6 @@ static void dwl_ipc_layout(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
 
   layouts[layoutcount - 1].layout_name = strdup(name);
   layouts[layoutcount - 1].index = layoutcount - 1;
-  // layoutcount++;
 }
 
 static struct layout get_layout(const char *name) {
@@ -101,8 +104,9 @@ dwl_ipc_output_toggle_visibility(void *data,
                                  struct zdwl_ipc_output_v2 *dwl_ipc_output) {
   struct output *o = (struct output *)data;
 
-  // fprintf(stderr, "output toggle visibility event no monitor %s\n",
-  // o->output_name);
+  if (debug)
+    fprintf(stderr, "output toggle visibility event no monitor %s\n",
+            o->output_name);
 }
 
 static void dwl_ipc_output_active(void *data,
@@ -111,8 +115,10 @@ static void dwl_ipc_output_active(void *data,
   struct output *o = (struct output *)data;
 
   o->active = active;
-  // fprintf(stderr, "output active event no monitor %s: %u\n", o->output_name,
-  // o->active);
+
+  if (debug)
+    fprintf(stderr, "output active event no monitor %s: %u\n", o->output_name,
+            o->active);
 }
 
 static void dwl_ipc_output_tag(void *data,
@@ -133,7 +139,8 @@ static void dwl_ipc_output_tag(void *data,
   o->tags[tag_index].clients = clients;
   o->tags[tag_index].focused = focused;
 
-  // fprintf(stderr, "novo evento de tag no monitor %s\n", o->output_name);
+  if (debug)
+    fprintf(stderr, "novo evento de tag no monitor %s\n", o->output_name);
 }
 
 static void dwl_ipc_output_layout(void *data,
@@ -146,8 +153,10 @@ static void dwl_ipc_output_layout_symbol(
 
   o->old_layout = o->new_layout;
   o->new_layout = get_layout(layout);
-  // fprintf(stderr, "novo layout no monitor %s: %s\n", o->output_name,
-  // o->new_layout.layout_name);
+
+  if (debug)
+    fprintf(stderr, "novo layout no monitor %s: %s\n", o->output_name,
+            o->new_layout.layout_name);
 }
 
 static void dwl_ipc_output_title(void *data,
@@ -156,8 +165,9 @@ static void dwl_ipc_output_title(void *data,
   struct output *o = (struct output *)data;
 
   o->title = strdup(title);
-  // fprintf(stderr, "novo title no monitor %s: %s\n", o->output_name,
-  // o->title);
+
+  if (debug)
+    fprintf(stderr, "novo title no monitor %s: %s\n", o->output_name, o->title);
 }
 
 static void dwl_ipc_output_appid(void *data,
@@ -166,8 +176,9 @@ static void dwl_ipc_output_appid(void *data,
   struct output *o = (struct output *)data;
 
   o->appid = strdup(appid);
-  // fprintf(stderr, "novo appid no monitor %s: %s\n", o->output_name,
-  // o->appid);
+
+  if (debug)
+    fprintf(stderr, "novo appid no monitor %s: %s\n", o->output_name, o->appid);
 }
 
 static void dwl_ipc_output_fullscreen(void *data,
@@ -177,8 +188,9 @@ static void dwl_ipc_output_fullscreen(void *data,
 
   o->fullscreen = is_fullscreen;
 
-  // fprintf(stderr, "output fullscreen event no monitor %s: %u\n",
-  // o->output_name, o->fullscreen);
+  if (debug)
+    fprintf(stderr, "output fullscreen event no monitor %s: %u\n",
+            o->output_name, o->fullscreen);
 }
 
 static void dwl_ipc_output_floating(void *data,
@@ -188,8 +200,9 @@ static void dwl_ipc_output_floating(void *data,
 
   o->floating = is_floating;
 
-  // fprintf(stderr, "output floating event no monitor %s: %u\n",
-  // o->output_name, o->floating);
+  if (debug)
+    fprintf(stderr, "output floating event no monitor %s: %u\n", o->output_name,
+            o->floating);
 }
 
 static void dwl_ipc_output_frame(void *data,
@@ -198,10 +211,12 @@ static void dwl_ipc_output_frame(void *data,
 
   uint32_t index = get_index_of_output(o->name);
 
-  // fprintf(stderr, "evento frame no monitor %s\n", o->output_name);
-  // fprintf(stderr, "index do monitor: %u\n", index);
+  if (debug) {
+    fprintf(stderr, "evento frame no monitor %s\n", o->output_name);
+    fprintf(stderr, "index do monitor: %u\n", index);
+  }
 
-  outputs[index] = *o;
+  // outputs[index] = *o;
 
   // for (size_t i = 0; i < outputcount; i++) {
   //   printf("monitor %s:\n", outputs[i].output_name);
@@ -225,7 +240,8 @@ static const struct zdwl_ipc_output_v2_listener dwl_ipc_output_listener = {
 
 static void wl_output_name(void *data, struct wl_output *output,
                            const char *name) {
-  // fprintf(stderr, "novo monitor detectado: %s\n", name);
+  if (debug)
+    fprintf(stderr, "novo monitor detectado: %s\n", name);
 
   if (outputs && dwl_ipc_manager) {
     struct output *o = (struct output *)data;
@@ -235,17 +251,20 @@ static void wl_output_name(void *data, struct wl_output *output,
 
     o->output_name = strdup(name);
 
-    // fprintf(stderr, "nome do novo monitor: %s\n", o->output_name);
+    if (debug)
+      fprintf(stderr, "nome do novo monitor: %s\n", o->output_name);
 
     struct zdwl_ipc_output_v2 *dwl_ipc_output =
         zdwl_ipc_manager_v2_get_output(dwl_ipc_manager, output);
 
-    // fprintf(stderr, "criado o ipc_output para o monitor\n");
+    if (debug)
+      fprintf(stderr, "criado o ipc_output para o monitor\n");
 
     zdwl_ipc_output_v2_add_listener(dwl_ipc_output, &dwl_ipc_output_listener,
                                     o);
 
-    // fprintf(stderr, "setou o listener\n");
+    if (debug)
+      fprintf(stderr, "setou o listener\n");
   } else
     die("bugou o outputs ou o ipc manager");
 }
@@ -266,7 +285,8 @@ static void global_add(void *data, struct wl_registry *wl_registry,
     struct wl_output *o = wl_registry_bind(
         wl_registry, name, &wl_output_interface, WL_OUTPUT_NAME_SINCE_VERSION);
 
-    // fprintf(stderr, "monitor novo\n");
+    if (debug)
+      fprintf(stderr, "monitor novo\n");
 
     outputs = realloc(outputs, ++outputcount * sizeof(struct output));
 
@@ -276,17 +296,21 @@ static void global_add(void *data, struct wl_registry *wl_registry,
     outputs[outputcount - 1].name = name;
     outputs[outputcount - 1].output = o;
 
-    // fprintf(stderr, "setou o nome\n");
+    if (debug)
+      fprintf(stderr, "setou o nome\n");
 
     wl_output_add_listener(o, &output_listener,
                            outputs ? &outputs[outputcount - 1] : NULL);
 
-    // fprintf(stderr, "criou o listener\n");
+    if (debug)
+      fprintf(stderr, "criou o listener\n");
 
-    // fprintf(stderr, "novo output detectado: %u\n",
-    //         outputs[outputcount - 1].name);
+    if (debug)
+      fprintf(stderr, "novo output detectado: %u\n",
+              outputs[outputcount - 1].name);
   } else if (strcmp(interface, zdwl_ipc_manager_v2_interface.name) == 0) {
-    // fprintf(stderr, "dwl ipc manager adicionado: %u\n", name);
+    if (debug)
+      fprintf(stderr, "dwl ipc manager adicionado: %u\n", name);
 
     dwl_ipc_manager =
         wl_registry_bind(wl_registry, name, &zdwl_ipc_manager_v2_interface,
@@ -302,13 +326,14 @@ static void global_remove(void *data, struct wl_registry *wl_registry,
     return;
   for (size_t i = 0; i < outputcount; i++) {
     if (outputs[i].name == name) {
-      // printf("output removido: %s\n", outputs[i].output_name);
+      if (debug)
+        fprintf(stderr, "output removido: %s\n", outputs[i].output_name);
 
       wl_output_release(outputs[i].output);
-      free(outputs[i].output_name);
-      free(outputs[i].tags);
-      free(outputs[i].appid);
-      free(outputs[i].title);
+      // free(outputs[i].output_name);
+      // free(outputs[i].tags);
+      // free(outputs[i].appid);
+      // free(outputs[i].title);
 
       outputs = realloc(outputs, --outputcount * sizeof(struct output));
 
@@ -401,6 +426,11 @@ void print_status() {
 }
 
 int main(int argc, char *argv[]) {
+  char *d = getenv("DEBUG");
+
+  if (d && strcmp(d, "full") == 0)
+    debug = 1;
+
   display = wl_display_connect(NULL);
   if (!display)
     die("bad display");
