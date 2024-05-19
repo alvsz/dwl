@@ -250,7 +250,7 @@ static void wl_output_name(void *data, struct wl_output *output,
     if (!o)
       die("bugou alguma coisa");
 
-    // o->output_name = strdup(name);
+    o->output_name = strdup(name);
 
     if (debug)
       fprintf(stderr, "nome do novo monitor: %s\n", o->output_name);
@@ -332,10 +332,10 @@ static void global_remove(void *data, struct wl_registry *wl_registry,
         fprintf(stderr, "output removido: %s\n", outputs[i].output_name);
 
       wl_output_release(outputs[i].output);
-      // free(outputs[i].output_name);
-      // free(outputs[i].tags);
-      // free(outputs[i].appid);
-      // free(outputs[i].title);
+      free(outputs[i].output_name);
+      free(outputs[i].tags);
+      free(outputs[i].appid);
+      free(outputs[i].title);
 
       // outputs = realloc(outputs, --outputcount * sizeof(struct output));
 
