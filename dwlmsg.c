@@ -219,9 +219,9 @@ static void dwl_ipc_output_frame(void *data,
 
   outputs[index] = *o;
 
-  for (size_t i = 0; i < outputcount; i++) {
-    printf("monitor %s:\n", outputs[i].output_name);
-  }
+  // for (size_t i = 0; i < outputcount; i++) {
+  //   fprintf(stderr, "monitor %s\n", outputs[i].output_name);
+  // }
 
   fflush(stdout);
 }
