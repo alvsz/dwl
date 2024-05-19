@@ -159,7 +159,7 @@ static const char *menucmd[] = {"ags", "-t", "applauncher", NULL};
 
 /* named scratchpads - First arg only serves to match against key in rules*/
 static const char *scratchcmd[] = { "t", APP_TERM, "--class", CLASS_SP, "-t", TITLE_SP, NULL };
-static const char *scratchspt[] = { "s", APP_TERM, "--class", CLASS_SP, "-t", "spotify", "-e", "spt", NULL };
+static const char *scratchspt[] = { "s", APP_TERM, "--class", CLASS_SP, "-t", "spotify", "-e", "spotify-player", NULL };
 static const char *scratchpwcalc[] = { "c", "eww", "open", "pwcalc-wayland", NULL };
 static const char *scratchcalc[] = { "c", "sh", "-c", "$CALCULATOR", NULL };
 
