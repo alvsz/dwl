@@ -26,8 +26,7 @@ struct layout {
 
 int debug = 0;
 
-static Layout *layouts;
-static size_t layoutcount;
+static Layout *layouts = NULL;
 
 static uint32_t tagcount;
 
@@ -60,8 +59,7 @@ struct output {
   Output *next;
 };
 
-static Output *outputs;
-static size_t outputcount;
+static Output *outputs = NULL;
 
 static struct wl_display *display;
 static struct wl_registry *registry;
@@ -139,23 +137,30 @@ static void noop() {}
 static void dwl_ipc_tags(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
                          uint32_t count) {
   tagcount = count;
+  if (debug)
+    fprintf(stderr, "tags event: %i\n", tagcount);
 }
 
 static void dwl_ipc_layout(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
                            const char *name) {
   Layout *l, *a;
 
+  // if (!layouts) {
+  //   l = layouts;
+  //   if (debug)
+  //     fprintf(stderr, "primeiro layout detectado: %s\n", name);
+  // } else {
   if (debug)
-    fprintf(stderr, "novo layout detectado: %s\n", name);
+    fprintf(stderr, "mais um layout detectado: %s\n", name);
 
-  if (!layouts)
-    l = layouts;
-  else {
-    a = last_layout();
-    a->next = l;
-  }
+  // a = last_layout();
+  // a->next = l;
+  // }
 
-  strcpy(l->layout_name, name);
+  l = (Layout *)calloc(1, sizeof(Layout));
+  l->layout_name = strdup(name);
+  l->next = layouts;
+  layouts = l;
 }
 
 static Layout *last_layout() {
@@ -165,15 +170,6 @@ static Layout *last_layout() {
     ;
 
   return l;
-}
-
-static Layout *get_layout(const char *name) {
-  Layout *l;
-  for (l = layouts; l; l = l->next)
-    if (strcmp(l->layout_name, name) == 0)
-      return l;
-
-  return layouts;
 }
 
 static Tag *last_tag(Tag *tag) {
@@ -192,6 +188,26 @@ static Output *last_output() {
     ;
 
   return o;
+}
+
+static Tag *get_tag(uint32_t i, Tag *tag) {
+  Tag *t = tag;
+  while (t) {
+    if (t->index == i)
+      return t;
+    t = t->next;
+  }
+  return tag;
+}
+
+static int num_tags(Tag *tag) {
+  Tag *t;
+  int i;
+
+  for (i = 0, t = tag; t; t = t->next)
+    i++;
+
+  return i;
 }
 
 static void
@@ -222,18 +238,42 @@ static void dwl_ipc_output_tag(void *data,
                                uint32_t clients, uint32_t focused) {
   Output *o = (struct output *)data;
   Tag *t, *a;
+  int i;
 
-  if (!o->tags)
-    o->tags = t;
-  else {
-    a = last_tag(o->tags);
-    a->next = t;
+  for (a = o->tags; a; a = a->next)
+    i++;
+
+  // if (o->tags == NULL) {
+  //   o->tags = t;
+  //   if (debug)
+  //     fprintf(stderr, "primeira tag detectada no output %s: %d\n",
+  //             o->output_name, tag_index);
+  // } else {
+  if (debug) {
+    fprintf(stderr, "mais uma tag detectada no output %s: %d\n", o->output_name,
+            tag_index);
+    fprintf(stderr, "numero de tags detectadas: %d\n", i);
   }
 
-  t->index = tag_index;
-  t->state = state;
-  t->clients = clients;
-  t->focused = focused;
+  // a = last_tag(o->tags);
+  // a->next = t;
+  // }
+
+  if (i <= tagcount) {
+    t = (Tag *)calloc(1, sizeof(Tag));
+    t->index = tag_index;
+    t->state = state;
+    t->clients = clients;
+    t->focused = focused;
+
+    t->next = o->tags;
+    o->tags = t;
+  } else {
+    a = get_tag(tag_index, o->tags);
+    a->state = state;
+    a->clients = clients;
+    a->focused = focused;
+  }
 
   if (debug)
     fprintf(stderr, "novo evento de tag no monitor %s\n", o->output_name);
@@ -316,7 +356,7 @@ static void wl_output_name(void *data, struct wl_output *output,
   if (debug)
     fprintf(stderr, "novo monitor detectado: %s\n", name);
 
-  if (outputs && dwl_ipc_manager) {
+  if (dwl_ipc_manager) {
     struct output *o = (struct output *)data;
 
     if (!o)
@@ -339,7 +379,7 @@ static void wl_output_name(void *data, struct wl_output *output,
     if (debug)
       fprintf(stderr, "setou o listener\n");
   } else
-    die("bugou o outputs ou o ipc manager");
+    die("bugou o ipc manager");
 }
 
 static void global_add(void *data, struct wl_registry *wl_registry,
@@ -353,20 +393,32 @@ static void global_add(void *data, struct wl_registry *wl_registry,
     if (debug)
       fprintf(stderr, "monitor novo\n");
 
-    if (!outputs)
-      o = outputs;
-    else {
-      a = last_output();
-      a->next = o;
+    // if (!outputs) {
+    //   o = outputs;
+    //   if (debug)
+    //     fprintf(stderr, "primeiro output detectado: %u\n", name);
+    // } else {
+    if (debug) {
+      fprintf(stderr, "mais um output detectado: %u\n", name);
+      // fprintf(stderr, "nome do primeiro: %s\n", outputs->output_name);
     }
+    //
+    //   a = last_output();
+    //   a->next = o;
+    // }
 
+    o = (Output *)calloc(1, sizeof(Output));
     o->name = name;
     o->output = wl_o;
+    o->tags = NULL;
+
+    o->next = outputs;
+    outputs = o;
 
     if (debug)
       fprintf(stderr, "setou o nome\n");
 
-    wl_output_add_listener(wl_o, &output_listener, NULL);
+    wl_output_add_listener(wl_o, &output_listener, o);
 
     if (debug) {
       fprintf(stderr, "criou o listener\n");
@@ -434,13 +486,15 @@ void escape_special_characters(char *str) {
 void print_status() {
   Output *o;
   Tag *t;
-  int i;
+
+  if (debug) {
+    fprintf(stderr, "printando status\n");
+    fprintf(stderr, "primeiro output: %s\n", outputs->output_name);
+  }
 
   printf("[ ");
-  for (i = 0, o = outputs; o->next; o = o->next, i++) {
-    int j;
-
-    if (i)
+  for (o = outputs; o; o = o->next) {
+    if (o != outputs)
       printf(", ");
 
     printf("{ ");
@@ -469,8 +523,8 @@ void print_status() {
     printf("}, ");
 
     printf("\"tags\": [ ");
-    for (j = 0, t = o->tags; t->next; t = t->next) {
-      if (j)
+    for (t = o->tags; t->next; t = t->next) {
+      if (t != o->tags)
         printf(", ");
 
       printf("{ ");

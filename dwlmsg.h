@@ -20,8 +20,6 @@ static struct layout *last_layout();
 
 static struct tag *last_tag(struct tag *tag);
 
-static struct layout *get_layout(const char *name);
-
 static void
 dwl_ipc_output_toggle_visibility(void *data,
                                  struct zdwl_ipc_output_v2 *dwl_ipc_output);
