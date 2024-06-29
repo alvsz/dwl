@@ -1,4 +1,5 @@
 // #include "dwl-ipc-unstable-v2-protocol.h"
+#include "dwlmsg.h"
 #include "dwl-ipc-unstable-v2-client-protocol.h"
 #include <poll.h>
 #include <stddef.h>
@@ -15,9 +16,11 @@
     exit(EXIT_FAILURE);                                                        \
   } while (0)
 
+typedef struct layout Layout;
 struct layout {
   char *layout_name;
   uint32_t index;
+  Layout *next;
 };
 
 int debug = 0;
@@ -27,12 +30,15 @@ static size_t layoutcount;
 
 static uint32_t tagcount;
 
+typedef struct tag Tag;
 struct tag {
   uint32_t state;
   uint32_t clients;
   uint32_t focused;
+  Tag *next;
 };
 
+typedef struct output Output;
 struct output {
   struct wl_output *output;
   char *output_name;
@@ -49,6 +55,7 @@ struct output {
 
   struct layout new_layout;
   struct layout old_layout;
+  Output *next;
 };
 
 static struct output *outputs;
@@ -58,6 +65,72 @@ static struct wl_display *display;
 static struct wl_registry *registry;
 static struct zdwl_ipc_manager_v2 *dwl_ipc_manager;
 
+static const struct zdwl_ipc_manager_v2_listener dwl_ipc_listener = {
+    .tags = dwl_ipc_tags, .layout = dwl_ipc_layout};
+
+static const struct wl_output_listener output_listener = {
+    .geometry = noop,
+    .mode = noop,
+    .done = noop,
+    .scale = noop,
+    .name = wl_output_name,
+    .description = noop,
+};
+
+static const struct zdwl_ipc_output_v2_listener dwl_ipc_output_listener = {
+    .toggle_visibility = dwl_ipc_output_toggle_visibility,
+    .active = dwl_ipc_output_active,
+    .tag = dwl_ipc_output_tag,
+    .layout = dwl_ipc_output_layout,
+    .title = dwl_ipc_output_title,
+    .appid = dwl_ipc_output_appid,
+    .layout_symbol = dwl_ipc_output_layout_symbol,
+    .fullscreen = dwl_ipc_output_fullscreen,
+    .floating = dwl_ipc_output_floating,
+    .frame = dwl_ipc_output_frame,
+};
+
+static const struct wl_registry_listener registry_listener = {
+    .global = global_add,
+    .global_remove = global_remove,
+};
+
+int main(int argc, char *argv[]) {
+  char *d = getenv("DEBUG");
+
+  if (d && strcmp(d, "full") == 0)
+    debug = 1;
+
+  display = wl_display_connect(NULL);
+  if (!display)
+    die("bad display");
+
+  registry = wl_display_get_registry(display);
+  if (!registry)
+    die("bad registry");
+
+  wl_registry_add_listener(registry, &registry_listener, NULL);
+
+  wl_display_dispatch(display);
+  wl_display_roundtrip(display);
+
+  if (!dwl_ipc_manager)
+    die("bad dwl-ipc protocol");
+
+  wl_display_roundtrip(display);
+
+  if (argc >= 2) {
+    if (strcmp(argv[1], "follow") == 0) {
+      print_status();
+
+      while (wl_display_dispatch(display) != -1)
+        print_status();
+    } else if (strcmp(argv[1], "status") == 0)
+      print_status();
+  }
+
+  return 0;
+}
 static void noop() {}
 
 static void dwl_ipc_tags(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
@@ -95,9 +168,6 @@ static size_t get_index_of_output(uint32_t id) {
   }
   return 0;
 }
-
-static const struct zdwl_ipc_manager_v2_listener dwl_ipc_listener = {
-    .tags = dwl_ipc_tags, .layout = dwl_ipc_layout};
 
 static void
 dwl_ipc_output_toggle_visibility(void *data,
@@ -226,19 +296,6 @@ static void dwl_ipc_output_frame(void *data,
   fflush(stdout);
 }
 
-static const struct zdwl_ipc_output_v2_listener dwl_ipc_output_listener = {
-    .toggle_visibility = dwl_ipc_output_toggle_visibility,
-    .active = dwl_ipc_output_active,
-    .tag = dwl_ipc_output_tag,
-    .layout = dwl_ipc_output_layout,
-    .title = dwl_ipc_output_title,
-    .appid = dwl_ipc_output_appid,
-    .layout_symbol = dwl_ipc_output_layout_symbol,
-    .fullscreen = dwl_ipc_output_fullscreen,
-    .floating = dwl_ipc_output_floating,
-    .frame = dwl_ipc_output_frame,
-};
-
 static void wl_output_name(void *data, struct wl_output *output,
                            const char *name) {
   if (debug)
@@ -269,15 +326,6 @@ static void wl_output_name(void *data, struct wl_output *output,
   } else
     die("bugou o outputs ou o ipc manager");
 }
-
-static const struct wl_output_listener output_listener = {
-    .geometry = noop,
-    .mode = noop,
-    .done = noop,
-    .scale = noop,
-    .name = wl_output_name,
-    .description = noop,
-};
 
 static void global_add(void *data, struct wl_registry *wl_registry,
                        uint32_t name, const char *interface, uint32_t version) {
@@ -344,11 +392,6 @@ static void global_remove(void *data, struct wl_registry *wl_registry,
     }
   }
 }
-
-static const struct wl_registry_listener registry_listener = {
-    .global = global_add,
-    .global_remove = global_remove,
-};
 
 void escape_special_characters(char *str) {
   char *p = str;
@@ -425,41 +468,4 @@ void print_status() {
   }
   printf("]\n");
   fflush(stdout);
-}
-
-int main(int argc, char *argv[]) {
-  char *d = getenv("DEBUG");
-
-  if (d && strcmp(d, "full") == 0)
-    debug = 1;
-
-  display = wl_display_connect(NULL);
-  if (!display)
-    die("bad display");
-
-  registry = wl_display_get_registry(display);
-  if (!registry)
-    die("bad registry");
-
-  wl_registry_add_listener(registry, &registry_listener, NULL);
-
-  wl_display_dispatch(display);
-  wl_display_roundtrip(display);
-
-  if (!dwl_ipc_manager)
-    die("bad dwl-ipc protocol");
-
-  wl_display_roundtrip(display);
-
-  if (argc >= 2) {
-    if (strcmp(argv[1], "follow") == 0) {
-      print_status();
-
-      while (wl_display_dispatch(display) != -1)
-        print_status();
-    } else if (strcmp(argv[1], "status") == 0)
-      print_status();
-  }
-
-  return 0;
 }
