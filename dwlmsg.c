@@ -3,6 +3,7 @@
 #include "dwl-ipc-unstable-v2-client-protocol.h"
 #include <poll.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +26,7 @@ struct layout {
 
 int debug = 0;
 
-static struct layout *layouts;
+static Layout *layouts;
 static size_t layoutcount;
 
 static uint32_t tagcount;
@@ -35,6 +36,7 @@ struct tag {
   uint32_t state;
   uint32_t clients;
   uint32_t focused;
+  uint32_t index;
   Tag *next;
 };
 
@@ -53,12 +55,12 @@ struct output {
   uint32_t fullscreen;
   uint32_t floating;
 
-  struct layout new_layout;
-  struct layout old_layout;
+  const char *new_layout;
+  const char *old_layout;
   Output *next;
 };
 
-static struct output *outputs;
+static Output *outputs;
 static size_t outputcount;
 
 static struct wl_display *display;
@@ -131,6 +133,7 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+
 static void noop() {}
 
 static void dwl_ipc_tags(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
@@ -140,33 +143,55 @@ static void dwl_ipc_tags(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
 
 static void dwl_ipc_layout(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
                            const char *name) {
+  Layout *l, *a;
+
   if (debug)
     fprintf(stderr, "novo layout detectado: %s\n", name);
 
-  layouts = realloc(layouts, ++layoutcount * sizeof(struct layout));
-
   if (!layouts)
-    die("não tem memória para o layout");
+    l = layouts;
+  else {
+    a = last_layout();
+    a->next = l;
+  }
 
-  layouts[layoutcount - 1].layout_name = strdup(name);
-  layouts[layoutcount - 1].index = layoutcount - 1;
+  strcpy(l->layout_name, name);
 }
 
-static struct layout get_layout(const char *name) {
-  for (size_t i = 0; i < layoutcount; i++) {
-    if (strcmp(name, layouts[i].layout_name) == 0) {
-      return layouts[i];
-    }
-  }
-  return layouts[0];
+static Layout *last_layout() {
+  Layout *l;
+
+  for (l = layouts; l->next; l = l->next)
+    ;
+
+  return l;
 }
 
-static size_t get_index_of_output(uint32_t id) {
-  for (size_t i = 0; i < outputcount; i++) {
-    if (outputs[i].name == id)
-      return i;
-  }
-  return 0;
+static Layout *get_layout(const char *name) {
+  Layout *l;
+  for (l = layouts; l; l = l->next)
+    if (strcmp(l->layout_name, name) == 0)
+      return l;
+
+  return layouts;
+}
+
+static Tag *last_tag(Tag *tag) {
+  Tag *t;
+
+  for (t = tag; t->next; t = t->next)
+    ;
+
+  return t;
+}
+
+static Output *last_output() {
+  Output *o;
+
+  for (o = outputs; o->next; o = o->next)
+    ;
+
+  return o;
 }
 
 static void
@@ -195,19 +220,20 @@ static void dwl_ipc_output_tag(void *data,
                                struct zdwl_ipc_output_v2 *dwl_ipc_output,
                                uint32_t tag_index, uint32_t state,
                                uint32_t clients, uint32_t focused) {
-  struct output *o = (struct output *)data;
+  Output *o = (struct output *)data;
+  Tag *t, *a;
 
-  o->tags = realloc(o->tags, (tag_index + 1) * sizeof(struct tag));
-
-  if (!o->tags) {
-    fprintf(stderr, "sem memória para a tag %ul no monitor %s\n", tag_index,
-            o->output_name);
-    die("sem memória para a tag");
+  if (!o->tags)
+    o->tags = t;
+  else {
+    a = last_tag(o->tags);
+    a->next = t;
   }
 
-  o->tags[tag_index].state = state;
-  o->tags[tag_index].clients = clients;
-  o->tags[tag_index].focused = focused;
+  t->index = tag_index;
+  t->state = state;
+  t->clients = clients;
+  t->focused = focused;
 
   if (debug)
     fprintf(stderr, "novo evento de tag no monitor %s\n", o->output_name);
@@ -222,11 +248,11 @@ static void dwl_ipc_output_layout_symbol(
   struct output *o = (struct output *)data;
 
   o->old_layout = o->new_layout;
-  o->new_layout = get_layout(layout);
+  o->new_layout = strdup(layout);
 
   if (debug)
     fprintf(stderr, "novo layout no monitor %s: %s\n", o->output_name,
-            o->new_layout.layout_name);
+            o->new_layout);
 }
 
 static void dwl_ipc_output_title(void *data,
@@ -277,21 +303,10 @@ static void dwl_ipc_output_floating(void *data,
 
 static void dwl_ipc_output_frame(void *data,
                                  struct zdwl_ipc_output_v2 *dwl_ipc_output) {
-  uint32_t index;
   struct output *o = (struct output *)data;
 
-  index = get_index_of_output(o->name);
-
-  if (debug) {
+  if (debug)
     fprintf(stderr, "evento frame no monitor %s\n", o->output_name);
-    fprintf(stderr, "index do monitor: %u\n", index);
-  }
-
-  outputs[index] = *o;
-
-  // for (size_t i = 0; i < outputcount; i++) {
-  //   fprintf(stderr, "monitor %s\n", outputs[i].output_name);
-  // }
 
   fflush(stdout);
 }
@@ -330,33 +345,33 @@ static void wl_output_name(void *data, struct wl_output *output,
 static void global_add(void *data, struct wl_registry *wl_registry,
                        uint32_t name, const char *interface, uint32_t version) {
   if (strcmp(interface, wl_output_interface.name) == 0) {
+    Output *o, *a;
 
-    struct wl_output *o = wl_registry_bind(
+    struct wl_output *wl_o = wl_registry_bind(
         wl_registry, name, &wl_output_interface, WL_OUTPUT_NAME_SINCE_VERSION);
 
     if (debug)
       fprintf(stderr, "monitor novo\n");
 
-    outputs = realloc(outputs, ++outputcount * sizeof(struct output));
-
     if (!outputs)
-      die("não tem memória para o output");
+      o = outputs;
+    else {
+      a = last_output();
+      a->next = o;
+    }
 
-    outputs[outputcount - 1].name = name;
-    outputs[outputcount - 1].output = o;
+    o->name = name;
+    o->output = wl_o;
 
     if (debug)
       fprintf(stderr, "setou o nome\n");
 
-    wl_output_add_listener(o, &output_listener,
-                           outputs ? &outputs[outputcount - 1] : NULL);
+    wl_output_add_listener(wl_o, &output_listener, NULL);
 
-    if (debug)
+    if (debug) {
       fprintf(stderr, "criou o listener\n");
-
-    if (debug)
-      fprintf(stderr, "novo output detectado: %u\n",
-              outputs[outputcount - 1].name);
+      fprintf(stderr, "novo output detectado: %u\n", o->name);
+    }
   } else if (strcmp(interface, zdwl_ipc_manager_v2_interface.name) == 0) {
     if (debug)
       fprintf(stderr, "dwl ipc manager adicionado: %u\n", name);
@@ -371,24 +386,24 @@ static void global_add(void *data, struct wl_registry *wl_registry,
 
 static void global_remove(void *data, struct wl_registry *wl_registry,
                           uint32_t name) {
+  Output *o, *a;
+
   if (!outputs)
     return;
 
-  for (size_t i = 0; i < outputcount; i++) {
-    if (outputs[i].name == name) {
+  for (a = outputs; a; a = a->next) {
+    if (a->next->name == name) {
+      o = a->next;
+      a->next = o->next;
+
       if (debug)
-        fprintf(stderr, "output removido: %s\n", outputs[i].output_name);
+        fprintf(stderr, "output removido: %s\n", o->output_name);
 
-      wl_output_release(outputs[i].output);
-      free(outputs[i].output_name);
-      free(outputs[i].tags);
-      free(outputs[i].appid);
-      free(outputs[i].title);
-
-      // outputs = realloc(outputs, --outputcount * sizeof(struct output));
-
-      if (!outputs && outputcount)
-        die("não tem memória para o output");
+      wl_output_release(o->output);
+      free(o->output_name);
+      free(o->tags);
+      free(o->appid);
+      free(o->title);
     }
   }
 }
@@ -417,49 +432,53 @@ void escape_special_characters(char *str) {
 }
 
 void print_status() {
+  Output *o;
+  Tag *t;
+  int i;
+
   printf("[ ");
-  for (size_t i = 0; i < outputcount; i++) {
+  for (i = 0, o = outputs; o->next; o = o->next, i++) {
+    int j;
+
     if (i)
       printf(", ");
 
     printf("{ ");
-    printf("\"id\": %u, ", outputs[i].name);
+    printf("\"id\": %u, ", o->name);
 
     printf("\"name\": \"");
-    escape_special_characters(outputs[i].output_name);
+    escape_special_characters(o->output_name);
     printf("\", ");
 
     printf("\"title\": \"");
-    escape_special_characters(outputs[i].title);
+    escape_special_characters(o->title);
     printf("\", ");
 
     printf("\"appid\": \"");
-    escape_special_characters(outputs[i].appid);
+    escape_special_characters(o->appid);
     printf("\", ");
 
-    printf("\"active\": %u, ", outputs[i].active);
+    printf("\"active\": %u, ", o->active);
 
     printf("\"layout\": { ");
 
-    printf("\"new\": {\"index\": %u, \"symbol\": \"%s\"}, ",
-           outputs[i].new_layout.index, outputs[i].new_layout.layout_name);
+    printf("\"new\": \"%s\", ", o->new_layout);
 
-    printf("\"old\": {\"index\": %u, \"symbol\": \"%s\"} ",
-           outputs[i].old_layout.index, outputs[i].old_layout.layout_name);
+    printf("\"old\": \"%s\" ", o->old_layout);
 
     printf("}, ");
 
     printf("\"tags\": [ ");
-    for (size_t j = 0; j < tagcount; j++) {
+    for (j = 0, t = o->tags; t->next; t = t->next) {
       if (j)
         printf(", ");
 
       printf("{ ");
-      printf("\"state\": %u, ", outputs[i].tags[j].state);
-      printf("\"clients\": %u, ", outputs[i].tags[j].clients);
-      printf("\"focused\": %u, ", outputs[i].tags[j].focused);
-      printf("\"index\": %lu, ", j);
-      printf("\"bit_mask\": %u", 1 << j);
+      printf("\"state\": %u, ", t->state);
+      printf("\"clients\": %u, ", t->clients);
+      printf("\"focused\": %u, ", t->focused);
+      printf("\"index\": %d, ", t->index);
+      printf("\"bit_mask\": %u", 1 << t->index);
       printf("}");
     }
     printf("] ");

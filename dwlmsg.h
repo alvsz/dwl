@@ -16,9 +16,11 @@ static void dwl_ipc_tags(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
 static void dwl_ipc_layout(void *data, struct zdwl_ipc_manager_v2 *ipc_manager,
                            const char *name);
 
-static struct layout get_layout(const char *name);
+static struct layout *last_layout();
 
-static size_t get_index_of_output(uint32_t id);
+static struct tag *last_tag(struct tag *tag);
+
+static struct layout *get_layout(const char *name);
 
 static void
 dwl_ipc_output_toggle_visibility(void *data,
