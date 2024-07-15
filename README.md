@@ -17,21 +17,25 @@ philosophy. Like dwm, dwl is:
 ### **dwl branch 0.7 and releases based upon 0.7 build against [wlroots] 0.18**
 
 ### Latest semi-stable [release]
+
 This is probably where you want to start. This builds against the dependent
 packages' versions currently shipping in major distributions. If your
 distribution's wlroots version is older, use an earlier dwl [release] or [0.x
 branch].
 
 ### Development branch [main]
+
 Active development progresses on the `main` branch. The `main` branch is built
 against a late (and often changing) git commit of wlroots. While the adventurous
 are welcome to use `main`, it is a rocky road. Using `main` requires that the
 user be willing to chase git commits of wlroots. Testing development pull
 requests may involve merging unmerged pull requests in [wlroots]' git repository
 and/or git commits of wayland.
-  
+
 ### Building dwl
+
 dwl has the following dependencies:
+
 - libinput
 - wayland
 - wlroots (compiled with the libinput backend)
@@ -40,14 +44,16 @@ dwl has the following dependencies:
 - pkg-config (compile-time only)
 
 dwl has the following additional dependencies if XWayland support is enabled:
+
 - libxcb
 - libxcb-wm
 - wlroots (compiled with X11 support)
 - Xwayland (runtime only)
 
 Install these (and their `-devel` versions if your distro has separate
-development packages) and run `make`. If you wish to build against a released
-version of wlroots (*you probably do*), use a [release] or a [0.x branch]. If
+development packages) and run `make`. You need to use the Git version of
+wlroots to build the `main` branch. If you wish to build against a released
+version of wlroots, use a release or a [0.x branch].
 you want to use the unstable development `main` branch, you need to use the git
 version of [wlroots].
 
@@ -81,19 +87,19 @@ modified in `config.h`.
 
 If you would like to run a script or command automatically at startup, you can
 specify the command using the `-s` option. This command will be executed as a
-shell command using `/bin/sh -c`.  It serves a similar function to `.xinitrc`,
+shell command using `/bin/sh -c`. It serves a similar function to `.xinitrc`,
 but differs in that the display server will not shut down when this process
 terminates. Instead, dwl will send this process a SIGTERM at shutdown and wait
 for it to terminate (if it hasn't already). This makes it ideal for execing into
 a user service manager like [s6], [anopa], [runit], [dinit], or [`systemd
 --user`].
 
-Note: The `-s` command is run as a *child process* of dwl, which means that it
+Note: The `-s` command is run as a _child process_ of dwl, which means that it
 does not have the ability to affect the environment of dwl or of any processes
 that it spawns. If you need to set environment variables that affect the entire
 dwl session, these must be set prior to running dwl. For example, Wayland
 requires a valid `XDG_RUNTIME_DIR`, which is usually set up by a session manager
-such as `elogind` or `systemd-logind`.  If your system doesn't do this
+such as `elogind` or `systemd-logind`. If your system doesn't do this
 automatically, you will need to configure it prior to launching `dwl`, e.g.:
 
     export XDG_RUNTIME_DIR=/tmp/xdg-runtime-$(id -u)
@@ -104,7 +110,7 @@ automatically, you will need to configure it prior to launching `dwl`, e.g.:
 
 Information about selected layouts, current window title, app-id, and
 selected/occupied/urgent tags is written to the stdin of the `-s` command (see
-the `printstatus()` function for details).  This information can be used to
+the `printstatus()` function for details). This information can be used to
 populate an external status bar with a script that parses the
 information. Failing to read this information will cause dwl to block, so if you
 do want to run a startup command that does not consume the status information,
@@ -159,7 +165,7 @@ Features under consideration (possibly as patches) are:
   implements input-method v2 (see https://github.com/ibus/ibus/pull/2256 and
   https://codeberg.org/dwl/dwl/pulls/235)
 
-Feature *non-goals* for the main codebase include:
+Feature _non-goals_ for the main codebase include:
 
 - Client-side decoration (any more than is necessary to tell the clients not to)
 - Client-initiated window management, such as move, resize, and close, which can
@@ -181,7 +187,6 @@ inspiration, and to the various contributors to the project, including:
 - Guido Cella for the layer-shell protocol implementation, patch maintenance,
   and for helping to keep the project running
 - Stivvo for output management and fullscreen support, and patch maintenance
-
 
 [`systemd --user`]: https://wiki.archlinux.org/title/Systemd/User
 [#dwl on Libera Chat]: https://web.libera.chat/?channels=#dwl
