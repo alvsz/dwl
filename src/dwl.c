@@ -1127,7 +1127,6 @@ void focusclient(Client *c, int lift) {
     selmon = c->mon;
     c->isurgent = 0;
     dwl_ipc_send_client_state_changed_event(c);
-    client_restack_surface(c);
 
     /* Don't change border color if there is an exclusive focus or we are
      * handling a drag operation */

@@ -320,15 +320,6 @@ static inline void client_notify_enter(struct wlr_surface *s,
     wlr_seat_keyboard_notify_enter(sseat, s, NULL, 0, NULL);
 }
 
-static inline void client_restack_surface(Client *c) {
-#ifdef XWAYLAND
-  if (client_is_x11(c))
-    wlr_xwayland_surface_restack(c->surface.xwayland, NULL,
-                                 XCB_STACK_MODE_ABOVE);
-#endif
-  return;
-}
-
 static inline void client_send_close(Client *c) {
 #ifdef XWAYLAND
   if (client_is_x11(c)) {
