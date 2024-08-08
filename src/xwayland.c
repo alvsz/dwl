@@ -23,6 +23,7 @@ void associatex11(struct wl_listener *listener, void *data) {
 }
 
 void configurex11(struct wl_listener *listener, void *data) {
+  Client *grabc = get_grabc();
   Client *c = wl_container_of(listener, c, configure);
   struct wlr_xwayland_surface_configure_event *event = data;
   /* This also handles "unmanaged" clients (because we do not assign
@@ -32,7 +33,7 @@ void configurex11(struct wl_listener *listener, void *data) {
                                    event->width, event->height);
     return;
   }
-  if (c->isfloating)
+  if ((c->isfloating && c != grabc) || !c->mon->lt[c->mon->sellt]->arrange)
     resize(c,
            (struct wlr_box){.x = event->x,
                             .y = event->y,

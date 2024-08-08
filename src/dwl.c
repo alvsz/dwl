@@ -2996,6 +2996,7 @@ struct wl_list *get_mons(void) { return &mons; }
 struct wlr_seat *get_seat(void) { return seat; }
 Monitor *get_selmon(void) { return selmon; }
 struct wlr_xcursor_manager *get_cursor_mgr(void) { return cursor_mgr; }
+Client *get_grabc(void) { return grabc; }
 
 float *get_config_rootcolor(void) { return rootcolor; }
 float *get_config_bordercolor(void) { return bordercolor; }
