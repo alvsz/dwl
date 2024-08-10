@@ -26,7 +26,6 @@
 #include "types.h"
 
 /* variables */
-static const char broken[] = "broken";
 static pid_t child_pid = -1;
 static int locked;
 static uint32_t locked_mods = 0;
@@ -141,10 +140,8 @@ void applyrules(Client *c) {
   c->isfloating = client_is_float_type(c);
   c->scratchkey = 0;
   c->nokill = 0;
-  if (!(appid = client_get_appid(c)))
-    appid = broken;
-  if (!(title = client_get_title(c)))
-    title = broken;
+  appid = client_get_appid(c);
+  title = client_get_title(c);
 
   for (r = rules; r < rules + nrules; r++) {
     if ((!r->title || strstr(title, r->title)) &&
@@ -2986,7 +2983,6 @@ void zoom(const Arg *arg) {
   arrange(selmon);
 }
 
-const char *get_broken(void) { return broken; }
 struct wl_list *get_clients(void) { return &clients; }
 struct wl_list *get_ipc_clients(void) { return &ipc_clients; }
 lua_State *get_lua(void) { return H; }

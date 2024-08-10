@@ -201,7 +201,6 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
               LayerSurface **pl, double *nx, double *ny);
 void zoom(const Arg *arg);
 
-const char *get_broken(void);
 struct wl_list *get_clients(void);
 struct wl_list *get_ipc_clients(void);
 lua_State *get_lua(void);

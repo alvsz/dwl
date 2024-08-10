@@ -15,18 +15,15 @@ int lua_clientindex(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   const char *key = luaL_checkstring(L, 2);
   const char *appid, *title;
-  const char *broken = get_broken();
   char str[2];
 
   if (strcmp(key, "app_id") == 0) {
-    if (!(appid = client_get_appid(lc->c)))
-      appid = broken;
+    appid = client_get_appid(lc->c);
 
     lua_pushstring(L, appid);
     return 1;
   } else if (strcmp(key, "title") == 0) {
-    if (!(title = client_get_title(lc->c)))
-      title = broken;
+    title = client_get_title(lc->c);
 
     lua_pushstring(L, title);
     return 1;
@@ -162,18 +159,14 @@ int lua_clientserialize(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   Client *c = lc->c;
   const char *appid, *title;
-  const char *broken = get_broken();
   struct json_object *json = json_object_new_object();
   struct json_object *geom;
   char str[2];
   str[0] = c->scratchkey;
   str[1] = '\0';
 
-  if (!(appid = client_get_appid(c)))
-    appid = broken;
-
-  if (!(title = client_get_title(c)))
-    title = broken;
+  appid = client_get_appid(c);
+  title = client_get_title(c);
 
   json_object_object_add(json, "app_id", json_object_new_string(appid));
   json_object_object_add(json, "title", json_object_new_string(title));
