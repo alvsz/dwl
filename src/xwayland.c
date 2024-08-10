@@ -5,7 +5,6 @@
 #include "util.h"
 
 struct wlr_xwayland *xwayland;
-xcb_atom_t netatom[NetLast];
 
 void activatex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, activate);
@@ -77,17 +76,6 @@ void dissociatex11(struct wl_listener *listener, void *data) {
   wl_list_remove(&c->unmap.link);
 }
 
-xcb_atom_t getatom(xcb_connection_t *xc, const char *name) {
-  xcb_atom_t atom = 0;
-  xcb_intern_atom_reply_t *reply;
-  xcb_intern_atom_cookie_t cookie = xcb_intern_atom(xc, 0, strlen(name), name);
-  if ((reply = xcb_intern_atom_reply(xc, cookie, NULL)))
-    atom = reply->atom;
-  free(reply);
-
-  return atom;
-}
-
 void sethints(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_hints);
   struct wlr_surface *surface = client_surface(c);
@@ -103,22 +91,6 @@ void sethints(struct wl_listener *listener, void *data) {
 
 void xwaylandready(struct wl_listener *listener, void *data) {
   struct wlr_xcursor *xcursor;
-  xcb_connection_t *xc = xcb_connect(xwayland->display_name, NULL);
-  int err = xcb_connection_has_error(xc);
-  if (err) {
-    fprintf(stderr,
-            "xcb_connect to X server failed with code %d\n. Continuing with "
-            "degraded functionality.\n",
-            err);
-    return;
-  }
-
-  /* Collect atoms we are interested in. If getatom returns 0, we will
-   * not detect that window type. */
-  netatom[NetWMWindowTypeDialog] = getatom(xc, "_NET_WM_WINDOW_TYPE_DIALOG");
-  netatom[NetWMWindowTypeSplash] = getatom(xc, "_NET_WM_WINDOW_TYPE_SPLASH");
-  netatom[NetWMWindowTypeToolbar] = getatom(xc, "_NET_WM_WINDOW_TYPE_TOOLBAR");
-  netatom[NetWMWindowTypeUtility] = getatom(xc, "_NET_WM_WINDOW_TYPE_UTILITY");
 
   /* assign the one and only seat */
   wlr_xwayland_set_seat(xwayland, get_seat());
@@ -130,9 +102,6 @@ void xwaylandready(struct wl_listener *listener, void *data) {
         xwayland, xcursor->images[0]->buffer, xcursor->images[0]->width * 4,
         xcursor->images[0]->width, xcursor->images[0]->height,
         xcursor->images[0]->hotspot_x, xcursor->images[0]->hotspot_y);
-
-  xcb_disconnect(xc);
 }
 
 struct wlr_xwayland **get_xwayland(void) { return &xwayland; }
-xcb_atom_t *get_netatom(void) { return netatom; }

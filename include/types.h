@@ -21,15 +21,6 @@ enum {
   LyrBlock,
   NUM_LAYERS
 }; /* scene layers */
-#ifdef XWAYLAND
-enum {
-  NetWMWindowTypeDialog,
-  NetWMWindowTypeSplash,
-  NetWMWindowTypeToolbar,
-  NetWMWindowTypeUtility,
-  NetLast
-}; /* EWMH atoms */
-#endif
 
 typedef union {
   int i;
