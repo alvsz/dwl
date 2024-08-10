@@ -300,7 +300,7 @@ void buttonpress(struct wl_listener *listener, void *data) {
     break;
   case WL_POINTER_BUTTON_STATE_RELEASED:
     /* If you released any buttons, we exit interactive move/resize mode. */
-    /* TODO should reset to the pointer focus's current setcursor */
+    /* TODO: should reset to the pointer focus's current setcursor */
     if (!locked && cursor_mode != CurNormal && cursor_mode != CurPressed) {
       wlr_cursor_set_xcursor(cursor, cursor_mgr, "default");
       cursor_mode = CurNormal;
@@ -309,9 +309,8 @@ void buttonpress(struct wl_listener *listener, void *data) {
       setmon(grabc, selmon, 0);
       grabc = NULL;
       return;
-    } else {
-      cursor_mode = CurNormal;
     }
+    cursor_mode = CurNormal;
     break;
   }
   /* If the event wasn't handled by the compositor, notify the client with
