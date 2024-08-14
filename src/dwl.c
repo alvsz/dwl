@@ -553,8 +553,7 @@ void commitnotify(struct wl_listener *listener, void *data) {
     return;
   }
 
-  if (client_surface(c)->mapped && c->mon)
-    resize(c, c->geom, (c->isfloating && !c->isfullscreen));
+  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
   /* mark a pending resize as completed */
   if (c->resize && c->resize <= c->surface.xdg->current.configure_serial)
