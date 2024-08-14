@@ -115,7 +115,6 @@ typedef struct {
   unsigned int type; /* LayerShell */
 
   Monitor *mon;
-  struct wlr_box geom;
   struct wlr_scene_tree *scene;
   struct wlr_scene_tree *popups;
   struct wlr_scene_layer_surface_v1 *scene_layer;
