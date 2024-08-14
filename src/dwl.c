@@ -53,7 +53,6 @@ static struct wlr_idle_notifier_v1 *idle_notifier;
 static struct wlr_idle_inhibit_manager_v1 *idle_inhibit_mgr;
 static struct wlr_layer_shell_v1 *layer_shell;
 static struct wlr_output_manager_v1 *output_mgr;
-static struct wlr_gamma_control_manager_v1 *gamma_control_mgr;
 static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
 static struct wlr_virtual_pointer_manager_v1 *virtual_pointer_mgr;
 static struct wlr_cursor_shape_manager_v1 *cursor_shape_mgr;
@@ -1932,7 +1931,6 @@ void rendermon(struct wl_listener *listener, void *data) {
   Monitor *m = wl_container_of(listener, m, frame);
   Client *c;
   struct wlr_output_state pending = {0};
-  struct wlr_gamma_control_v1 *gamma_control;
   struct timespec now;
 
   /* Render if no XDG clients have an outstanding resize and are visible on
@@ -1943,32 +1941,7 @@ void rendermon(struct wl_listener *listener, void *data) {
       goto skip;
   }
 
-  /*
-   * HACK: The "correct" way to set the gamma is to commit it together with
-   * the rest of the state in one go, but to do that we would need to rewrite
-   * wlr_scene_output_commit() in order to add the gamma to the pending
-   * state before committing, instead try to commit the gamma in one frame,
-   * and commit the rest of the state in the next one (or in the same frame if
-   * the gamma can not be committed).
-   */
-  if (m->gamma_lut_changed) {
-    gamma_control = wlr_gamma_control_manager_v1_get_control(gamma_control_mgr,
-                                                             m->wlr_output);
-    m->gamma_lut_changed = 0;
-
-    if (!wlr_gamma_control_v1_apply(gamma_control, &pending))
-      goto commit;
-
-    if (!wlr_output_test_state(m->wlr_output, &pending)) {
-      wlr_gamma_control_v1_send_failed_and_destroy(gamma_control);
-      goto commit;
-    }
-    wlr_output_commit_state(m->wlr_output, &pending);
-    wlr_output_schedule_frame(m->wlr_output);
-  } else {
-  commit:
-    wlr_scene_output_commit(m->scene_output, NULL);
-  }
+  wlr_scene_output_commit(m->scene_output, NULL);
 
 skip:
   /* Let clients know a frame has been rendered */
@@ -2167,15 +2140,6 @@ void setfullscreen(Client *c, int fullscreen) {
   printstatus();
 }
 
-void setgamma(struct wl_listener *listener, void *data) {
-  struct wlr_gamma_control_manager_v1_set_gamma_event *event = data;
-  Monitor *m = event->output->data;
-  if (!m)
-    return;
-  m->gamma_lut_changed = 1;
-  wlr_output_schedule_frame(m->wlr_output);
-}
-
 void setgaps(int oh, int ov, int ih, int iv) {
   selmon->gappoh = MAX(oh, 0);
   selmon->gappov = MAX(ov, 0);
@@ -2338,8 +2302,8 @@ void setup(void) {
   activation = wlr_xdg_activation_v1_create(dpy);
   LISTEN_STATIC(&activation->events.request_activate, urgent);
 
-  gamma_control_mgr = wlr_gamma_control_manager_v1_create(dpy);
-  LISTEN_STATIC(&gamma_control_mgr->events.set_gamma, setgamma);
+  wlr_scene_set_gamma_control_manager_v1(
+      scene, wlr_gamma_control_manager_v1_create(dpy));
 
   power_mgr = wlr_output_power_manager_v1_create(dpy);
   LISTEN_STATIC(&power_mgr->events.set_mode, powermgrsetmode);
