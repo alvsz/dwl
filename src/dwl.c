@@ -547,9 +547,9 @@ void commitnotify(struct wl_listener *listener, void *data) {
 
     wlr_xdg_toplevel_set_wm_capabilities(
         c->surface.xdg->toplevel, WLR_XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN);
-    wlr_xdg_toplevel_set_size(c->surface.xdg->toplevel, 0, 0);
     if (c->decoration)
       requestdecorationmode(&c->set_decoration_mode, c->decoration);
+    wlr_xdg_toplevel_set_size(c->surface.xdg->toplevel, 0, 0);
     return;
   }
 
