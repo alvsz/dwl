@@ -177,5 +177,12 @@ I would probably just submit raphi's patchset but I don't think that would be po
       </description>
       <arg name="is_floating" type="uint" summary="If the selected client is floating. Nonzero is valid, zero invalid"/>
     </event>
+
+    <event name="clients">
+      <description summary="List of clients">
+        Indicates the list of clients
+      </description>
+      <arg name="list" type="object" summary="List of clients"/>
+    </event>
   </interface>
 </protocol>
