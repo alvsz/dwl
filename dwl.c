@@ -68,7 +68,7 @@
 #include <xcb/xcb_icccm.h>
 #endif
 
-#include "dwl-ipc-unstable-v2-protocol.h"
+#include "dwl-ipc-unstable-v2-server-protocol.h"
 #include "util.h"
 
 /* macros */
@@ -1571,6 +1571,7 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
                                  monitor->lt[monitor->sellt] - layouts);
   zdwl_ipc_output_v2_send_title(ipc_output->resource, title);
   zdwl_ipc_output_v2_send_appid(ipc_output->resource, appid);
+  zdwl_ipc_output_v2_send_clients(ipc_output->resource, &clients);
   zdwl_ipc_output_v2_send_layout_symbol(ipc_output->resource,
                                         monitor->ltsymbol);
   if (wl_resource_get_version(ipc_output->resource) >=

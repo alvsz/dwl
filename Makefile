@@ -22,8 +22,13 @@ dwl: dwl.o util.o dwl-ipc-unstable-v2-protocol.o
 dwl.o: dwl.c client.h config.h config.mk cursor-shape-v1-protocol.h \
 	pointer-constraints-unstable-v1-protocol.h wlr-layer-shell-unstable-v1-protocol.h \
 	wlr-output-power-management-unstable-v1-protocol.h xdg-shell-protocol.h \
-	dwl-ipc-unstable-v2-protocol.h
+	dwl-ipc-unstable-v2-server-protocol.h
 util.o: util.c util.h
+dwlmsg: dwlmsg.o dwl-ipc-unstable-v2-protocol.o
+	$(CC) $^ -lwayland-client -o $@
+dwlmsg.o: dwlmsg.c dwl-ipc-unstable-v2-client-protocol.h
+dwl-ipc-unstable-v2-protocol-server.o: dwl-ipc-unstable-v2-server-protocol.h
+dwl-ipc-unstable-v2-protocol-client.o: dwl-ipc-unstable-v2-client-protocol.h
 dwl-ipc-unstable-v2-protocol.o: dwl-ipc-unstable-v2-protocol.c dwl-ipc-unstable-v2-protocol.h
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
@@ -47,8 +52,11 @@ wlr-output-power-management-unstable-v1-protocol.h:
 xdg-shell-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		$(WAYLAND_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml $@
-dwl-ipc-unstable-v2-protocol.h:
+dwl-ipc-unstable-v2-server-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
+		protocols/dwl-ipc-unstable-v2.xml $@
+dwl-ipc-unstable-v2-client-protocol.h:
+	$(WAYLAND_SCANNER) client-header \
 		protocols/dwl-ipc-unstable-v2.xml $@
 dwl-ipc-unstable-v2-protocol.c:
 	$(WAYLAND_SCANNER) private-code \
@@ -77,6 +85,7 @@ install: dwl
 	mkdir -p $(DESTDIR)$(DATADIR)/wayland-sessions
 	cp -f dwl.desktop $(DESTDIR)$(DATADIR)/wayland-sessions/dwl.desktop
 	chmod 644 $(DESTDIR)$(DATADIR)/wayland-sessions/dwl.desktop
+	cp -f dwlmsg $(DESTDIR)$(PREFIX)/bin
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/dwl $(DESTDIR)$(MANDIR)/man1/dwl.1 \
 		$(DESTDIR)$(DATADIR)/wayland-sessions/dwl.desktop
