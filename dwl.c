@@ -162,7 +162,7 @@ typedef struct {
 #endif
   unsigned int bw;
   uint32_t tags;
-  int isfloating, isurgent, isfullscreen;
+  int isfloating, isurgent, isfullscreen, nokill;
   char scratchkey;
   uint32_t resize; /* configure serial of a pending resize */
 } Client;
@@ -266,6 +266,7 @@ typedef struct {
   const char *title;
   uint32_t tags;
   int isfloating;
+  int nokill;
   int monitor;
   const char scratchkey;
 } Rule;
@@ -560,6 +561,7 @@ void applyrules(Client *c) {
 
   c->isfloating = client_is_float_type(c);
   c->scratchkey = 0;
+  c->nokill = 0;
   if (!(appid = client_get_appid(c)))
     appid = broken;
   if (!(title = client_get_title(c)))
@@ -570,6 +572,7 @@ void applyrules(Client *c) {
         (!r->id || strstr(appid, r->id))) {
       c->isfloating = r->isfloating;
       c->scratchkey = r->scratchkey;
+      c->nokill = r->nokill;
       newtags |= r->tags;
       i = 0;
       wl_list_for_each(m, &mons, link) {
@@ -2082,7 +2085,7 @@ int keyrepeat(void *data) {
 
 void killclient(const Arg *arg) {
   Client *sel = focustop(selmon);
-  if (sel)
+  if (sel && !sel->nokill)
     client_send_close(sel);
 }
 

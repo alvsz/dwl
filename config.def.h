@@ -1,3 +1,4 @@
+// clang-format off
 /* Taken from https://github.com/djpohly/dwl/issues/466 */
 #define COLOR(hex)    { ((hex >> 24) & 0xFF) / 255.0f, \
                         ((hex >> 16) & 0xFF) / 255.0f, \
@@ -35,11 +36,11 @@ static const char *const autostart[] = {
 
 /* NOTE: ALWAYS keep a rule declared even if you don't use rules (e.g leave at least one example) */
 static const Rule rules[] = {
-	/* app_id             title         tags mask     isfloating   monitor scratchkey */
+	/* app_id             title         tags mask     isfloating  nokill monitor scratchkey */
 	/* examples: */
-	{ "Gimp_EXAMPLE",     NULL,         0,            1,           -1,     0   }, /* Start on currently visible tags floating, not tiled */
-	{ "firefox_EXAMPLE",  NULL,         1 << 8,       0,           -1,     0   }, /* Start on ONLY tag "9" */
-	{ NULL,               "scratchpad", 0,            1,           -1,     's' },
+	{ "Gimp_EXAMPLE",     NULL,         0,            1,          0,     -1,     0   }, /* Start on currently visible tags floating, not tiled */
+	{ "firefox_EXAMPLE",  NULL,         1 << 8,       0,          0,     -1,     0   }, /* Start on ONLY tag "9" */
+	{ NULL,               "scratchpad", 0,            1,          0,     -1,     's' },
 };
 
 /* layout(s) */
