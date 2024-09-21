@@ -2213,8 +2213,8 @@ void monocle(Monitor *m) {
                               .height = m->w.height - 2 * gappov},
              0);
   }
-  if (n)
-    snprintf(m->ltsymbol, LENGTH(m->ltsymbol), "[%d]", n);
+  // if (n)
+  //   snprintf(m->ltsymbol, LENGTH(m->ltsymbol), "[%d]", n);
   if ((c = focustop(m)))
     wlr_scene_node_raise_to_top(&c->scene->node);
 }
