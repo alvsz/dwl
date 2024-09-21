@@ -182,7 +182,7 @@ I would probably just submit raphi's patchset but I don't think that would be po
       <description summary="Update the client list">
         Indicates the list of open clients.
       </description>
-      <arg name="list" type="object" summary="wl_list of clients"/>
+      <arg name="list" type="array" summary="wl_list of clients"/>
     </event>
   </interface>
 </protocol>

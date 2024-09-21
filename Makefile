@@ -29,7 +29,7 @@ dwlmsg: dwlmsg.o dwl-ipc-unstable-v2-protocol.o
 dwlmsg.o: dwlmsg.c dwl-ipc-unstable-v2-client-protocol.h
 dwl-ipc-unstable-v2-protocol-server.o: dwl-ipc-unstable-v2-server-protocol.h
 dwl-ipc-unstable-v2-protocol-client.o: dwl-ipc-unstable-v2-client-protocol.h
-dwl-ipc-unstable-v2-protocol.o: dwl-ipc-unstable-v2-protocol.c dwl-ipc-unstable-v2-protocol.h
+# dwl-ipc-unstable-v2-protocol.o: dwl-ipc-unstable-v2-protocol.c dwl-ipc-unstable-v2-protocol.h
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
 # protocols, which are specified in XML. wlroots requires you to rig these up

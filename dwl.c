@@ -12,6 +12,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
+#include <wayland-server.h>
 #include <wlr/backend.h>
 #include <wlr/backend/libinput.h>
 #include <wlr/interfaces/wlr_keyboard.h>
@@ -1571,7 +1572,8 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
                                  monitor->lt[monitor->sellt] - layouts);
   zdwl_ipc_output_v2_send_title(ipc_output->resource, title);
   zdwl_ipc_output_v2_send_appid(ipc_output->resource, appid);
-  zdwl_ipc_output_v2_send_clients(ipc_output->resource, &clients);
+  // zdwl_ipc_output_v2_send_clients(ipc_output->resource,
+  // (struct wl_resource *)&clients);
   zdwl_ipc_output_v2_send_layout_symbol(ipc_output->resource,
                                         monitor->ltsymbol);
   if (wl_resource_get_version(ipc_output->resource) >=
