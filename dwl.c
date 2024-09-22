@@ -456,7 +456,7 @@ static void lua_createclientmetatable(lua_State *);
 static int lua_createmonitor(lua_State *, Monitor *);
 static void lua_createmonitormetatable(lua_State *);
 static int lua_monitorindex(lua_State *);
-static void lua_setup(lua_State *);
+static void lua_setup(void);
 
 /* variables */
 static const char broken[] = "broken";
@@ -2514,17 +2514,17 @@ void printstatus(void) {
 
   fprintf(stderr, "executando a função lua\n");
   fprintf(stderr, "lua: %p\n", (void *)H);
-  // lua_getglobal(H, "printstatus");
+  lua_getglobal(H, "printstatus");
 
-  // if (lua_isnil(H, -1)) {
-  //   fprintf(stderr, "não existe função printstatus\n");
-  // } else if (!lua_isfunction(H, -1)) {
-  //   fprintf(stderr, "printstatus não é função\n");
-  // } else {
-  //   printf("é função\n");
-  //   // lua_pcall(H, 0, 0, 0);
-  // }
-  // lua_pop(H, 1);
+  if (lua_isnil(H, -1)) {
+    fprintf(stderr, "não existe função printstatus\n");
+  } else if (!lua_isfunction(H, -1)) {
+    fprintf(stderr, "printstatus não é função\n");
+  } else {
+    printf("é função\n");
+    // lua_pcall(H, 0, 0, 0);
+  }
+  lua_pop(H, 1);
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -3854,23 +3854,22 @@ void lua_openconfig(lua_State *L) {
   }
 }
 
-void lua_setup(lua_State **S) {
-  lua_State *L = *S;
-  L = luaL_newstate();
-  luaL_openlibs(L);
+void lua_setup(void) {
+  H = luaL_newstate();
+  luaL_openlibs(H);
 
   fprintf(stderr, "lua criado\n");
 
-  lua_createclientmetatable(L);
-  lua_createmonitormetatable(L);
+  lua_createclientmetatable(H);
+  lua_createmonitormetatable(H);
 
-  lua_pushcfunction(L, lua_getclients);
-  lua_setglobal(L, "get_clients");
+  lua_pushcfunction(H, lua_getclients);
+  lua_setglobal(H, "get_clients");
 
-  lua_pushcfunction(L, lua_getmonitors);
-  lua_setglobal(L, "get_monitors");
+  lua_pushcfunction(H, lua_getmonitors);
+  lua_setglobal(H, "get_monitors");
 
-  lua_openconfig(L);
+  lua_openconfig(H);
 }
 
 int main(int argc, char *argv[]) {
@@ -3894,7 +3893,7 @@ int main(int argc, char *argv[]) {
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
   setup();
-  lua_setup(&H);
+  lua_setup();
   run(startup_cmd);
   cleanup();
   return EXIT_SUCCESS;
