@@ -6,6 +6,7 @@
 #include <linux/input-event-codes.h>
 #include <math.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -279,6 +280,33 @@ typedef struct {
   struct wl_listener unlock;
   struct wl_listener destroy;
 } SessionLock;
+
+typedef struct {
+  const char *title;
+  const char *app_id;
+  const char scratchkey;
+  uint32_t tags;
+  int active;
+  int monitor_id;
+} LuaClient;
+
+enum LuaTagState {
+  ACTIVE,
+  URGENT,
+  FOCUSED,
+};
+
+typedef struct {
+  enum LuaTagState state;
+  int clients;
+} LuaTag;
+
+typedef struct {
+  const char *layout;
+  const LuaTag *tags;
+  const char *name;
+  const int index;
+} LuaMonitor;
 
 /* function declarations */
 static void applybounds(Client *c, struct wlr_box *bbox);
@@ -2487,6 +2515,8 @@ void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 void printstatus(void) {
   Monitor *m = NULL;
   wl_list_for_each(m, &mons, link) dwl_ipc_output_printstatus(m);
+
+  // lua executar função global aqui
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -3384,8 +3414,8 @@ void updatemons(struct wl_listener *listener, void *data) {
 
 void updatetitle(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_title);
-  if (c == focustop(c->mon))
-    printstatus();
+  // if (c == focustop(c->mon))
+  printstatus();
 }
 
 void urgent(struct wl_listener *listener, void *data) {
@@ -3671,6 +3701,7 @@ int main(int argc, char *argv[]) {
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
   setup();
+  // setup_lua();
   run(startup_cmd);
   cleanup();
   return EXIT_SUCCESS;
