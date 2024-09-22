@@ -2512,8 +2512,8 @@ void printstatus(void) {
   Monitor *m = NULL;
   wl_list_for_each(m, &mons, link) dwl_ipc_output_printstatus(m);
 
-  fprintf(stderr, "executando a função lua\n");
-  fprintf(stderr, "lua: %p\n", (void *)H);
+  // fprintf(stderr, "executando a função lua\n");
+  // fprintf(stderr, "lua: %p\n", (void *)H);
   lua_getglobal(H, "printstatus");
 
   if (lua_isnil(H, -1)) {
@@ -2521,10 +2521,10 @@ void printstatus(void) {
   } else if (!lua_isfunction(H, -1)) {
     fprintf(stderr, "printstatus não é função\n");
   } else {
-    printf("é função\n");
-    // lua_pcall(H, 0, 0, 0);
+    // printf("é função\n");
+    lua_pcall(H, 0, 0, 0);
   }
-  lua_pop(H, 1);
+  // lua_pop(H, 1);
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -3771,9 +3771,9 @@ static int lua_monitorindex(lua_State *L) {
   } else if (strcmp(key, "tagset2") == 0) {
     lua_pushinteger(L, lm->m->tagset[1]);
     return 1;
-    // } else if (strcmp(key, "name") == 0) {
-    //   lua_pushstring(L, lm->m->wlr_output->name);
-    //   return 1;
+  } else if (strcmp(key, "name") == 0) {
+    lua_pushstring(L, lm->m->wlr_output->name);
+    return 1;
   }
 
   lua_pushnil(L);
