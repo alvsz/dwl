@@ -2512,15 +2512,18 @@ void printstatus(void) {
   Monitor *m = NULL;
   wl_list_for_each(m, &mons, link) dwl_ipc_output_printstatus(m);
 
+  fprintf(stderr, "executando a função lua\n");
   lua_getglobal(H, "printstatus");
 
-  if (lua_isnil(H, -1)) {
-    fprintf(stderr, "não existe função printstatus\n");
-  } else if (!lua_isfunction(H, -1)) {
-    fprintf(stderr, "printstatus não é função\n");
-  } else {
-    lua_pcall(H, 0, 0, 0);
-  }
+  // if (lua_isnil(H, -1)) {
+  //   fprintf(stderr, "não existe função printstatus\n");
+  // } else if (!lua_isfunction(H, -1)) {
+  //   fprintf(stderr, "printstatus não é função\n");
+  // } else {
+  //   printf("é função\n");
+  //   // lua_pcall(H, 0, 0, 0);
+  // }
+  lua_pop(H, 1);
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -3767,9 +3770,9 @@ static int lua_monitorindex(lua_State *L) {
   } else if (strcmp(key, "tagset2") == 0) {
     lua_pushinteger(L, lm->m->tagset[1]);
     return 1;
-  } else if (strcmp(key, "name") == 0) {
-    lua_pushstring(L, lm->m->wlr_output->name);
-    return 1;
+    // } else if (strcmp(key, "name") == 0) {
+    //   lua_pushstring(L, lm->m->wlr_output->name);
+    //   return 1;
   }
 
   lua_pushnil(L);
@@ -3806,7 +3809,7 @@ static int lua_getmonitors(lua_State *L) {
   return 1;
 }
 
-void lua_setup(lua_State *L) {
+void lua_openconfig(lua_State *L) {
   char *config_dir;
   char *path;
 
@@ -3840,27 +3843,32 @@ void lua_setup(lua_State *L) {
 
   if (file) {
     fclose(file);
-    L = luaL_newstate();
-    luaL_openlibs(L);
-
-    lua_createclientmetatable(L);
-    lua_createmonitormetatable(L);
-
-    lua_pushcfunction(L, lua_getclients);
-    lua_setglobal(L, "get_clients");
-
-    lua_pushcfunction(L, lua_getmonitors);
-    lua_setglobal(L, "get_monitors");
 
     if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
       lua_close(L);
-      return;
     }
-
   } else {
     fprintf(stderr, "O arquivo rc.lua não existe.\n");
   }
+}
+
+void lua_setup(lua_State *L) {
+  L = luaL_newstate();
+  luaL_openlibs(L);
+
+  fprintf(stderr, "lua criado\n");
+
+  lua_createclientmetatable(L);
+  lua_createmonitormetatable(L);
+
+  lua_pushcfunction(L, lua_getclients);
+  lua_setglobal(L, "get_clients");
+
+  lua_pushcfunction(L, lua_getmonitors);
+  lua_setglobal(L, "get_monitors");
+
+  lua_openconfig(L);
 }
 
 int main(int argc, char *argv[]) {
