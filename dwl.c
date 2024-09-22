@@ -449,6 +449,7 @@ static void xytonode(double x, double y, struct wlr_surface **psurface,
                      Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void zoom(const Arg *arg);
 
+static void lua_autostart(lua_State *L);
 static int lua_clientindex(lua_State *);
 static int lua_createclient(lua_State *, Client *);
 static void lua_createclientmetatable(lua_State *);
