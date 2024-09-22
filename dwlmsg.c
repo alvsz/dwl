@@ -18,13 +18,6 @@
     exit(EXIT_FAILURE);                                                        \
   } while (0)
 
-typedef struct layout Layout;
-struct layout {
-  char *layout_name;
-  uint32_t index;
-  Layout *next;
-};
-
 int debug = 0;
 
 static Layout *layouts = NULL;
@@ -356,6 +349,9 @@ static void wl_output_name(void *data, struct wl_output *output,
                            const char *name) {
   if (debug)
     fprintf(stderr, "novo monitor detectado: %s\n", name);
+
+  Monitor *mon = output->data;
+  printf("%s\n", mon->ltsymbol);
 
   if (dwl_ipc_manager) {
     struct output *o = (struct output *)data;
