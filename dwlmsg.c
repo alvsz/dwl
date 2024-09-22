@@ -1,6 +1,7 @@
 // #include "dwl-ipc-unstable-v2-protocol.h"
 #include "dwlmsg.h"
 #include "dwl-ipc-unstable-v2-client-protocol.h"
+#include "dwl.h"
 #include <poll.h>
 #include <stddef.h>
 #include <stdint.h>

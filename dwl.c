@@ -69,6 +69,7 @@
 #endif
 
 #include "dwl-ipc-unstable-v2-server-protocol.h"
+#include "dwl.h"
 #include "util.h"
 
 /* macros */
@@ -125,48 +126,6 @@ typedef struct {
   const Arg arg;
 } Button;
 
-typedef struct Pertag Pertag;
-typedef struct Monitor Monitor;
-typedef struct {
-  /* Must keep these three elements in this order */
-  unsigned int type;   /* XDGShell or X11* */
-  struct wlr_box geom; /* layout-relative, includes border */
-  Monitor *mon;
-  struct wlr_scene_tree *scene;
-  struct wlr_scene_rect *border[4]; /* top, bottom, left, right */
-  struct wlr_scene_tree *scene_surface;
-  struct wl_list link;
-  struct wl_list flink;
-  union {
-    struct wlr_xdg_surface *xdg;
-    struct wlr_xwayland_surface *xwayland;
-  } surface;
-  struct wlr_xdg_toplevel_decoration_v1 *decoration;
-  struct wl_listener commit;
-  struct wl_listener map;
-  struct wl_listener maximize;
-  struct wl_listener unmap;
-  struct wl_listener destroy;
-  struct wl_listener set_title;
-  struct wl_listener fullscreen;
-  struct wl_listener set_decoration_mode;
-  struct wl_listener destroy_decoration;
-  struct wlr_box prev; /* layout-relative, includes border */
-  struct wlr_box bounds;
-#ifdef XWAYLAND
-  struct wl_listener activate;
-  struct wl_listener associate;
-  struct wl_listener dissociate;
-  struct wl_listener configure;
-  struct wl_listener set_hints;
-#endif
-  unsigned int bw;
-  uint32_t tags;
-  int isfloating, isurgent, isfullscreen, nokill;
-  char scratchkey;
-  uint32_t resize; /* configure serial of a pending resize */
-} Client;
-
 typedef struct {
   struct wl_list link;
   struct wl_resource *resource;
@@ -210,41 +169,6 @@ typedef struct {
   struct wl_listener unmap;
   struct wl_listener surface_commit;
 } LayerSurface;
-
-typedef struct {
-  const char *symbol;
-  void (*arrange)(Monitor *);
-} Layout;
-
-struct Monitor {
-  struct wl_list link;
-  struct wl_list dwl_ipc_outputs;
-  struct wlr_output *wlr_output;
-  struct wlr_scene_output *scene_output;
-  struct wlr_scene_rect *fullscreen_bg; /* See createmon() for info */
-  struct wl_listener frame;
-  struct wl_listener destroy;
-  struct wl_listener request_state;
-  struct wl_listener destroy_lock_surface;
-  struct wlr_session_lock_surface_v1 *lock_surface;
-  struct wlr_box m;         /* monitor area, layout-relative */
-  struct wlr_box w;         /* window area, layout-relative */
-  struct wl_list layers[4]; /* LayerSurface.link */
-  const Layout *lt[2];
-  int gappih; /* horizontal gap between windows */
-  int gappiv; /* vertical gap between windows */
-  int gappoh; /* horizontal outer gaps */
-  int gappov; /* vertical outer gaps */
-  Pertag *pertag;
-  unsigned int seltags;
-  unsigned int sellt;
-  uint32_t tagset[2];
-  float mfact;
-  int gamma_lut_changed;
-  int nmaster;
-  char ltsymbol[16];
-  int asleep;
-};
 
 typedef struct {
   const char *name;
