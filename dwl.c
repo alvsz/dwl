@@ -2513,7 +2513,8 @@ void printstatus(void) {
   wl_list_for_each(m, &mons, link) dwl_ipc_output_printstatus(m);
 
   fprintf(stderr, "executando a função lua\n");
-  lua_getglobal(H, "printstatus");
+  fprintf(stderr, "lua: %p\n", (void *)H);
+  // lua_getglobal(H, "printstatus");
 
   // if (lua_isnil(H, -1)) {
   //   fprintf(stderr, "não existe função printstatus\n");
@@ -2523,7 +2524,7 @@ void printstatus(void) {
   //   printf("é função\n");
   //   // lua_pcall(H, 0, 0, 0);
   // }
-  lua_pop(H, 1);
+  // lua_pop(H, 1);
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -3853,7 +3854,8 @@ void lua_openconfig(lua_State *L) {
   }
 }
 
-void lua_setup(lua_State *L) {
+void lua_setup(lua_State **S) {
+  lua_State *L = *S;
   L = luaL_newstate();
   luaL_openlibs(L);
 
@@ -3892,7 +3894,7 @@ int main(int argc, char *argv[]) {
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
   setup();
-  lua_setup(H);
+  lua_setup(&H);
   run(startup_cmd);
   cleanup();
   return EXIT_SUCCESS;
