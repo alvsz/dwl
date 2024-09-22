@@ -178,4 +178,104 @@ I would probably just submit raphi's patchset but I don't think that would be po
       <arg name="is_floating" type="uint" summary="If the selected client is floating. Nonzero is valid, zero invalid"/>
     </event>
   </interface>
+
+  <interface name="zdwl_ipc_toplevel_v2" version="3">
+    <description summary="an opened toplevel">
+      A zdwl_ipc_toplevel_v2 object represents an opened toplevel
+      window. Each app may have multiple opened toplevels.
+
+      Each toplevel has a list of outputs it is visible on, conveyed to the
+      client with the output_enter and output_leave events.
+    </description>
+
+    <event name="title">
+      <description summary="title change">
+        This event is emitted whenever the title of the toplevel changes.
+      </description>
+      <arg name="title" type="string"/>
+    </event>
+
+    <event name="app_id">
+      <description summary="app-id change">
+        This event is emitted whenever the app-id of the toplevel changes.
+      </description>
+      <arg name="app_id" type="string"/>
+    </event>
+
+    <event name="tags">
+      <description summary="tags change">
+        This event is emitted whenever the tags of the toplevel changes.
+      </description>
+      <arg name="tags" type="uint"/>
+    </event>
+
+    <event name="output_enter">
+      <description summary="toplevel entered an output">
+        This event is emitted whenever the toplevel becomes visible on
+        the given output. A toplevel may be visible on multiple outputs.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+    </event>
+
+    <event name="output_leave">
+      <description summary="toplevel left an output">
+        This event is emitted whenever the toplevel stops being visible on
+        the given output. It is guaranteed that an entered-output event
+        with the same output has been emitted before this event.
+      </description>
+      <arg name="output" type="object" interface="wl_output"/>
+    </event>
+
+    <request name="activate">
+      <description summary="activate the toplevel">
+        Request that this toplevel be activated on the given seat.
+        There is no guarantee the toplevel will be actually activated.
+      </description>
+      <arg name="seat" type="object" interface="wl_seat"/>
+    </request>
+
+    <enum name="state">
+      <description summary="types of states on the toplevel">
+        The different states that a toplevel can have. These have the same meaning
+        as the states with the same names defined in xdg-toplevel
+      </description>
+
+      <entry name="maximized"  value="0" summary="the toplevel is maximized"/>
+      <entry name="minimized"  value="1" summary="the toplevel is minimized"/>
+      <entry name="activated"  value="2" summary="the toplevel is active"/>
+      <entry name="fullscreen" value="3" summary="the toplevel is fullscreen" since="2"/>
+    </enum>
+
+    <request name="close">
+      <description summary="request that the toplevel be closed">
+        Send a request to the toplevel to close itself. The compositor would
+        typically use a shell-specific method to carry out this request, for
+        example by sending the xdg_toplevel.close event. However, this gives
+        no guarantees the toplevel will actually be destroyed. If and when
+        this happens, the zwlr_foreign_toplevel_handle_v1.closed event will
+        be emitted.
+      </description>
+    </request>
+
+    <event name="closed">
+      <description summary="this toplevel has been destroyed">
+        This event means the toplevel has been destroyed. It is guaranteed there
+        won't be any more events for this zwlr_foreign_toplevel_handle_v1. The
+        toplevel itself becomes inert so any requests will be ignored except the
+        destroy request.
+      </description>
+    </event>
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy the zwlr_foreign_toplevel_handle_v1 object">
+        Destroys the zwlr_foreign_toplevel_handle_v1 object.
+
+        This request should be called either when the client does not want to
+        use the toplevel anymore or after the closed event to finalize the
+        destruction of the object.
+      </description>
+    </request>
+
+  </interface>
+
 </protocol>
