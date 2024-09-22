@@ -18,6 +18,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
+#include <wayland-util.h>
 #include <wlr/backend.h>
 #include <wlr/backend/libinput.h>
 #include <wlr/interfaces/wlr_keyboard.h>
@@ -287,30 +288,11 @@ typedef struct {
 } SessionLock;
 
 typedef struct {
-  const char *title;
-  const char *app_id;
-  const char scratchkey;
-  uint32_t tags;
-  int active;
-  int monitor_id;
+  Client *c;
 } LuaClient;
 
-enum LuaTagState {
-  ACTIVE,
-  URGENT,
-  FOCUSED,
-};
-
 typedef struct {
-  enum LuaTagState state;
-  int clients;
-} LuaTag;
-
-typedef struct {
-  const char *layout;
-  const LuaTag *tags;
-  const char *name;
-  const int index;
+  Monitor *m;
 } LuaMonitor;
 
 /* function declarations */
@@ -441,7 +423,6 @@ static void setmon(Client *c, Monitor *m, uint32_t newtags);
 static void setpsel(struct wl_listener *listener, void *data);
 static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
-static void setup_lua(void);
 static void spawn(const Arg *arg);
 static void spawnscratch(const Arg *arg);
 static void startdrag(struct wl_listener *listener, void *data);
@@ -468,6 +449,14 @@ static Monitor *xytomon(double x, double y);
 static void xytonode(double x, double y, struct wlr_surface **psurface,
                      Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void zoom(const Arg *arg);
+
+static int lua_clientindex(lua_State *);
+static int lua_createclient(lua_State *, Client *);
+static void lua_createclientmetatable(lua_State *);
+static int lua_createmonitor(lua_State *, Monitor *);
+static void lua_createmonitormetatable(lua_State *);
+static int lua_monitorindex(lua_State *);
+static void lua_setup(lua_State *);
 
 /* variables */
 static const char broken[] = "broken";
@@ -559,7 +548,7 @@ static xcb_atom_t netatom[NetLast];
 
 static pid_t *autostart_pids;
 static size_t autostart_len;
-lua_State *L;
+lua_State *H;
 
 struct Pertag {
   unsigned int curtag, prevtag;      /* current and previous tag */
@@ -2523,14 +2512,14 @@ void printstatus(void) {
   Monitor *m = NULL;
   wl_list_for_each(m, &mons, link) dwl_ipc_output_printstatus(m);
 
-  lua_getglobal(L, "printstatus");
+  lua_getglobal(H, "printstatus");
 
-  if (lua_isnil(L, -1)) {
+  if (lua_isnil(H, -1)) {
     fprintf(stderr, "não existe função printstatus\n");
-  } else if (!lua_isfunction(L, -1)) {
+  } else if (!lua_isfunction(H, -1)) {
     fprintf(stderr, "printstatus não é função\n");
   } else {
-    lua_pcall(L, 0, 0, 0);
+    lua_pcall(H, 0, 0, 0);
   }
 }
 
@@ -2550,7 +2539,7 @@ void powermgrsetmode(struct wl_listener *listener, void *data) {
 }
 
 void quit(const Arg *arg) {
-  lua_close(L);
+  lua_close(H);
   wl_display_terminate(dpy);
 }
 
@@ -3094,51 +3083,6 @@ void setup(void) {
             "failed to setup XWayland X server, continuing without it\n");
   }
 #endif
-}
-
-void setup_lua(void) {
-  char *config_dir;
-  char *path;
-
-  config_dir = getenv("XDG_CONFIG_HOME");
-
-  if (config_dir == NULL) {
-    fprintf(stderr,
-            "A variável de ambiente XDG_CONFIG_HOME não está definida.\n");
-
-    const char *home = getenv("HOME");
-
-    if (home == NULL) {
-      fprintf(stderr, "A variável de ambiente HOME não está definida.\n");
-      exit(1);
-    }
-    int err = asprintf(&config_dir, "%s/.config", home);
-
-    if (err == -1) {
-      fprintf(stderr, "erro no asprintf");
-      exit(1);
-    }
-  }
-
-  int err = asprintf(&path, "%s/dwl/rc.lua", config_dir);
-  if (err == -1) {
-    fprintf(stderr, "erro no asprintf");
-    exit(1);
-  }
-
-  FILE *file = fopen(path, "r");
-
-  if (file) {
-    fclose(file);
-    L = luaL_newstate();
-    luaL_openlibs(L);
-
-    if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
-      printf("Erro ao executar o script: %s\n", lua_tostring(L, -1));
-    }
-  } else {
-    fprintf(stderr, "O arquivo rc.lua não existe.\n");
-  }
 }
 
 void spawn(const Arg *arg) {
@@ -3743,6 +3687,182 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 }
 #endif
 
+static int lua_clientindex(lua_State *L) {
+  const char *appid, *title;
+  LuaClient *lc;
+  const char *key;
+
+  lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  key = luaL_checkstring(L, 2);
+
+  if (strcmp(key, "app_id") == 0) {
+    if (!(appid = client_get_appid(lc->c)))
+      appid = broken;
+
+    lua_pushstring(L, appid);
+    return 1;
+  } else if (strcmp(key, "title") == 0) {
+    if (!(title = client_get_title(lc->c)))
+      title = broken;
+
+    lua_pushstring(L, title);
+    return 1;
+  } else if (strcmp(key, "isfloating") == 0) {
+    lua_pushinteger(L, lc->c->isfloating);
+    return 1;
+  }
+
+  lua_pushnil(L);
+  return 1;
+}
+
+static int lua_createclient(lua_State *L, Client *c) {
+  LuaClient *lc = (LuaClient *)lua_newuserdata(L, sizeof(LuaClient));
+
+  luaL_getmetatable(L, "Client");
+  lua_setmetatable(L, -2);
+  lc->c = c;
+
+  return 1;
+}
+
+static void lua_createclientmetatable(lua_State *L) {
+  luaL_newmetatable(L, "Client");
+
+  lua_pushcfunction(L, lua_clientindex);
+  lua_setfield(L, -2, "__index");
+
+  lua_setglobal(L, "Client");
+}
+
+static int lua_createmonitor(lua_State *L, Monitor *m) {
+  LuaMonitor *lm = (LuaMonitor *)lua_newuserdata(L, sizeof(LuaMonitor));
+
+  luaL_getmetatable(L, "Monitor");
+  lua_setmetatable(L, -2);
+  lm->m = m;
+
+  return 1;
+}
+
+static void lua_createmonitormetatable(lua_State *L) {
+  luaL_newmetatable(L, "Monitor");
+
+  lua_pushcfunction(L, lua_monitorindex);
+  lua_setfield(L, -2, "__index");
+
+  lua_setglobal(L, "Monitor");
+}
+
+static int lua_monitorindex(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  const char *key = luaL_checkstring(L, 2);
+
+  if (strcmp(key, "layout") == 0) {
+    lua_pushstring(L, lm->m->ltsymbol);
+    return 1;
+  } else if (strcmp(key, "tagset1") == 0) {
+    lua_pushinteger(L, lm->m->tagset[0]);
+    return 1;
+  } else if (strcmp(key, "tagset2") == 0) {
+    lua_pushinteger(L, lm->m->tagset[1]);
+    return 1;
+  } else if (strcmp(key, "name") == 0) {
+    lua_pushstring(L, lm->m->wlr_output->name);
+    return 1;
+  }
+
+  lua_pushnil(L);
+  return 1;
+}
+
+static int lua_getclients(lua_State *L) {
+  Client *c;
+  int i = 1;
+
+  lua_newtable(L);
+
+  wl_list_for_each(c, &clients, link) {
+    lua_pushinteger(L, i);
+    lua_createclient(L, c);
+    lua_rawset(L, -3);
+    i++;
+  }
+  return 1;
+}
+
+static int lua_getmonitors(lua_State *L) {
+  Monitor *m;
+  int i = 1;
+
+  lua_newtable(L);
+
+  wl_list_for_each(m, &mons, link) {
+    lua_pushinteger(L, i);
+    lua_createmonitor(L, m);
+    lua_rawset(L, -3);
+    i++;
+  }
+  return 1;
+}
+
+void lua_setup(lua_State *L) {
+  char *config_dir;
+  char *path;
+
+  config_dir = getenv("XDG_CONFIG_HOME");
+
+  if (config_dir == NULL) {
+    fprintf(stderr,
+            "A variável de ambiente XDG_CONFIG_HOME não está definida.\n");
+
+    const char *home = getenv("HOME");
+
+    if (home == NULL) {
+      fprintf(stderr, "A variável de ambiente HOME não está definida.\n");
+      exit(1);
+    }
+    int err = asprintf(&config_dir, "%s/.config", home);
+
+    if (err == -1) {
+      fprintf(stderr, "erro no asprintf");
+      exit(1);
+    }
+  }
+
+  int err = asprintf(&path, "%s/dwl/rc.lua", config_dir);
+  if (err == -1) {
+    fprintf(stderr, "erro no asprintf");
+    exit(1);
+  }
+
+  FILE *file = fopen(path, "r");
+
+  if (file) {
+    fclose(file);
+    L = luaL_newstate();
+    luaL_openlibs(L);
+
+    lua_createclientmetatable(L);
+    lua_createmonitormetatable(L);
+
+    lua_pushcfunction(L, lua_getclients);
+    lua_setglobal(L, "get_clients");
+
+    lua_pushcfunction(L, lua_getmonitors);
+    lua_setglobal(L, "get_monitors");
+
+    if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
+      lua_close(L);
+      return;
+    }
+
+  } else {
+    fprintf(stderr, "O arquivo rc.lua não existe.\n");
+  }
+}
+
 int main(int argc, char *argv[]) {
   char *startup_cmd = NULL;
   int c;
@@ -3764,7 +3884,7 @@ int main(int argc, char *argv[]) {
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
   setup();
-  setup_lua();
+  lua_setup(H);
   run(startup_cmd);
   cleanup();
   return EXIT_SUCCESS;
