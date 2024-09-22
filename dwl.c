@@ -1,14 +1,19 @@
 /*
  * See LICENSE file for copyright and license details.
  */
+#define _GNU_SOURCE
 #include <getopt.h>
+#include <lauxlib.h>
 #include <libinput.h>
 #include <linux/input-event-codes.h>
+#include <lua.h>
+#include <lualib.h>
 #include <math.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
@@ -436,6 +441,7 @@ static void setmon(Client *c, Monitor *m, uint32_t newtags);
 static void setpsel(struct wl_listener *listener, void *data);
 static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
+static void setup_lua(void);
 static void spawn(const Arg *arg);
 static void spawnscratch(const Arg *arg);
 static void startdrag(struct wl_listener *listener, void *data);
@@ -553,6 +559,7 @@ static xcb_atom_t netatom[NetLast];
 
 static pid_t *autostart_pids;
 static size_t autostart_len;
+lua_State *L;
 
 struct Pertag {
   unsigned int curtag, prevtag;      /* current and previous tag */
@@ -2516,7 +2523,15 @@ void printstatus(void) {
   Monitor *m = NULL;
   wl_list_for_each(m, &mons, link) dwl_ipc_output_printstatus(m);
 
-  // lua executar função global aqui
+  lua_getglobal(L, "printstatus");
+
+  if (lua_isnil(L, -1)) {
+    fprintf(stderr, "não existe função printstatus\n");
+  } else if (!lua_isfunction(L, -1)) {
+    fprintf(stderr, "printstatus não é função\n");
+  } else {
+    lua_pcall(L, 0, 0, 0);
+  }
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -2534,7 +2549,10 @@ void powermgrsetmode(struct wl_listener *listener, void *data) {
   m->asleep = !event->mode;
 }
 
-void quit(const Arg *arg) { wl_display_terminate(dpy); }
+void quit(const Arg *arg) {
+  lua_close(L);
+  wl_display_terminate(dpy);
+}
 
 void rendermon(struct wl_listener *listener, void *data) {
   /* This function is called every time an output is ready to display a frame,
@@ -3076,6 +3094,51 @@ void setup(void) {
             "failed to setup XWayland X server, continuing without it\n");
   }
 #endif
+}
+
+void setup_lua(void) {
+  char *config_dir;
+  char *path;
+
+  config_dir = getenv("XDG_CONFIG_HOME");
+
+  if (config_dir == NULL) {
+    fprintf(stderr,
+            "A variável de ambiente XDG_CONFIG_HOME não está definida.\n");
+
+    const char *home = getenv("HOME");
+
+    if (home == NULL) {
+      fprintf(stderr, "A variável de ambiente HOME não está definida.\n");
+      exit(1);
+    }
+    int err = asprintf(&config_dir, "%s/.config", home);
+
+    if (err == -1) {
+      fprintf(stderr, "erro no asprintf");
+      exit(1);
+    }
+  }
+
+  int err = asprintf(&path, "%s/dwl/rc.lua", config_dir);
+  if (err == -1) {
+    fprintf(stderr, "erro no asprintf");
+    exit(1);
+  }
+
+  FILE *file = fopen(path, "r");
+
+  if (file) {
+    fclose(file);
+    L = luaL_newstate();
+    luaL_openlibs(L);
+
+    if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
+      printf("Erro ao executar o script: %s\n", lua_tostring(L, -1));
+    }
+  } else {
+    fprintf(stderr, "O arquivo rc.lua não existe.\n");
+  }
 }
 
 void spawn(const Arg *arg) {
@@ -3701,7 +3764,7 @@ int main(int argc, char *argv[]) {
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
   setup();
-  // setup_lua();
+  setup_lua();
   run(startup_cmd);
   cleanup();
   return EXIT_SUCCESS;
