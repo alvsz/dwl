@@ -420,9 +420,8 @@ static void zoom(const Arg *arg);
 static void lua_autostart(lua_State *);
 static int lua_clientindex(lua_State *);
 static int lua_createclient(lua_State *, Client *);
-static void lua_createclientmetatable(lua_State *);
 static int lua_createmonitor(lua_State *, Monitor *);
-static void lua_createmonitormetatable(lua_State *);
+static void lua_setupenv(lua_State *);
 static int lua_monitorindex(lua_State *);
 static void lua_setup(void);
 
@@ -2353,6 +2352,8 @@ void run(char *startup_cmd) {
     die("startup: display_add_socket_auto");
   setenv("WAYLAND_DISPLAY", socket, 1);
 
+  lua_setupenv(H);
+
   /* Start the backend. This will enumerate outputs and inputs, become the DRM
    * master, etc */
   if (!wlr_backend_start(backend))
@@ -2361,6 +2362,7 @@ void run(char *startup_cmd) {
   /* Now that the socket exists and the backend is started, run the startup
    * command */
   lua_autostart(H);
+
   if (startup_cmd) {
     int piperw[2];
     if (pipe(piperw) < 0)
@@ -3377,16 +3379,16 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 #endif
 
 static void lua_autostart(lua_State *L) {
-  lua_getglobal(H, "autostart");
+  lua_getglobal(L, "autostart");
 
-  if (lua_isnil(H, -1)) {
+  if (lua_isnil(L, -1)) {
     fprintf(stderr, "não existe função autostart\n");
-    lua_pop(H, 1);
-  } else if (!lua_isfunction(H, -1)) {
+    lua_pop(L, 1);
+  } else if (!lua_isfunction(L, -1)) {
     fprintf(stderr, "autostart não é função\n");
-    lua_pop(H, 1);
+    lua_pop(L, 1);
   } else {
-    if (lua_pcall(H, 0, 0, 0))
+    if (lua_pcall(L, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
   }
 }
@@ -3430,15 +3432,6 @@ static int lua_createclient(lua_State *L, Client *c) {
   return 1;
 }
 
-static void lua_createclientmetatable(lua_State *L) {
-  luaL_newmetatable(L, "Client");
-
-  lua_pushcfunction(L, lua_clientindex);
-  lua_setfield(L, -2, "__index");
-
-  lua_setglobal(L, "Client");
-}
-
 static int lua_createmonitor(lua_State *L, Monitor *m) {
   LuaMonitor *lm = (LuaMonitor *)lua_newuserdata(L, sizeof(LuaMonitor));
 
@@ -3449,36 +3442,27 @@ static int lua_createmonitor(lua_State *L, Monitor *m) {
   return 1;
 }
 
-static void lua_createmonitormetatable(lua_State *L) {
-  luaL_newmetatable(L, "Monitor");
+static void lua_setupenv(lua_State *L) {
+  lua_getglobal(L, "env_cfg");
 
-  lua_pushcfunction(L, lua_monitorindex);
-  lua_setfield(L, -2, "__index");
-
-  lua_setglobal(L, "Monitor");
-}
-
-static int lua_monitorindex(lua_State *L) {
-  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
-  const char *key = luaL_checkstring(L, 2);
-
-  if (strcmp(key, "layout") == 0) {
-    lua_pushstring(L, lm->m->ltsymbol);
-    return 1;
-  } else if (strcmp(key, "tagset1") == 0) {
-    lua_pushinteger(L, lm->m->tagset[0]);
-    return 1;
-  } else if (strcmp(key, "tagset2") == 0) {
-    lua_pushinteger(L, lm->m->tagset[1]);
-    return 1;
-  } else if (strcmp(key, "name") == 0) {
-    lua_pushstring(L, lm->m->wlr_output->name);
-    return 1;
+  if (lua_isnil(L, -1)) {
+    fprintf(stderr, "não variável env_cfg\n");
+    lua_pop(L, 1);
+  } else if (!lua_istable(L, -1)) {
+    fprintf(stderr, "env_cfg não é uma tabela\n");
+    lua_pop(L, 1);
+  } else {
+    lua_pushnil(L);
+    while (lua_next(L, -2) != 0) {
+      if (lua_isstring(L, -1) && lua_isstring(L, -1)) {
+        const char *key = lua_tostring(L, -2);
+        const char *value = lua_tostring(L, -1);
+        setenv(key, value, 1);
+      }
+      lua_pop(L, 1);
+    }
   }
-
-  lua_pushnil(L);
-  return 1;
-}
+};
 
 static int lua_getclients(lua_State *L) {
   Client *c;
@@ -3507,6 +3491,28 @@ static int lua_getmonitors(lua_State *L) {
     lua_rawset(L, -3);
     i++;
   }
+  return 1;
+}
+
+static int lua_monitorindex(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  const char *key = luaL_checkstring(L, 2);
+
+  if (strcmp(key, "layout") == 0) {
+    lua_pushstring(L, lm->m->ltsymbol);
+    return 1;
+  } else if (strcmp(key, "tagset1") == 0) {
+    lua_pushinteger(L, lm->m->tagset[0]);
+    return 1;
+  } else if (strcmp(key, "tagset2") == 0) {
+    lua_pushinteger(L, lm->m->tagset[1]);
+    return 1;
+  } else if (strcmp(key, "name") == 0) {
+    lua_pushstring(L, lm->m->wlr_output->name);
+    return 1;
+  }
+
+  lua_pushnil(L);
   return 1;
 }
 
@@ -3558,8 +3564,15 @@ void lua_setup(void) {
 
   fprintf(stderr, "lua criado\n");
 
-  lua_createclientmetatable(H);
-  lua_createmonitormetatable(H);
+  luaL_newmetatable(L, "Client");
+  lua_pushcfunction(L, lua_clientindex);
+  lua_setfield(L, -2, "__index");
+  lua_setglobal(L, "Client");
+
+  luaL_newmetatable(L, "Monitor");
+  lua_pushcfunction(L, lua_monitorindex);
+  lua_setfield(L, -2, "__index");
+  lua_setglobal(L, "Monitor");
 
   lua_pushcfunction(H, lua_getclients);
   lua_setglobal(H, "get_clients");
