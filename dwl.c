@@ -430,9 +430,11 @@ static void lua_autostart(lua_State *);
 static int lua_clientindex(lua_State *);
 static int lua_createclient(lua_State *, Client *);
 static int lua_createmonitor(lua_State *, Monitor *);
-static void lua_setupenv(lua_State *);
+static int lua_getconfig(lua_State *, const char *, int);
 static int lua_monitorindex(lua_State *);
+static void lua_openconfigfile(lua_State *);
 static void lua_setup(void);
+static void lua_setupenv(lua_State *);
 
 /* variables */
 static const char broken[] = "broken";
@@ -3527,28 +3529,6 @@ int lua_createmonitor(lua_State *L, Monitor *m) {
   return 1;
 }
 
-void lua_setupenv(lua_State *L) {
-  lua_getglobal(L, "env_cfg");
-
-  if (lua_isnil(L, -1)) {
-    fprintf(stderr, "não variável env_cfg\n");
-    lua_pop(L, 1);
-  } else if (!lua_istable(L, -1)) {
-    fprintf(stderr, "env_cfg não é uma tabela\n");
-    lua_pop(L, 1);
-  } else {
-    lua_pushnil(L);
-    while (lua_next(L, -2) != 0) {
-      if (lua_isstring(L, -1) && lua_isstring(L, -1)) {
-        const char *key = lua_tostring(L, -2);
-        const char *value = lua_tostring(L, -1);
-        setenv(key, value, 1);
-      }
-      lua_pop(L, 1);
-    }
-  }
-}
-
 int lua_getclients(lua_State *L) {
   Client *c;
   int i = 1;
@@ -3579,6 +3559,40 @@ int lua_getmonitors(lua_State *L) {
   return 1;
 }
 
+static int lua_getconfig(lua_State *L, const char *key, int t) {
+  lua_getglobal(L, "dwl_cfg");
+
+  if (lua_isnil(L, -1)) {
+    fprintf(stderr, "não tem variável dwl_cfg\n");
+    lua_pop(L, 1);
+    return 0;
+  }
+  if (!lua_istable(L, -1)) {
+    fprintf(stderr, "dwl_cfg não é uma tabela\n");
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  lua_pushstring(L, key);
+  lua_gettable(L, -2);
+
+  if (lua_isnil(L, -1)) {
+    fprintf(stderr, "não existe campo %s\n", key);
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  int type = lua_type(L, -1);
+
+  if (type != t) {
+    fprintf(stderr, "%s não é um %s\n", key, lua_typename(L, t));
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  return 1;
+}
+
 int lua_monitorindex(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
   const char *key = luaL_checkstring(L, 2);
@@ -3601,7 +3615,7 @@ int lua_monitorindex(lua_State *L) {
   return 1;
 }
 
-void lua_openconfig(lua_State *L) {
+void lua_openconfigfile(lua_State *L) {
   char *config_dir;
   char *path;
 
@@ -3665,7 +3679,22 @@ void lua_setup(void) {
   lua_pushcfunction(H, lua_getmonitors);
   lua_setglobal(H, "get_monitors");
 
-  lua_openconfig(H);
+  lua_openconfigfile(H);
+}
+
+void lua_setupenv(lua_State *L) {
+  if (lua_getconfig(L, "env_cfg", LUA_TTABLE)) {
+    lua_pushnil(L);
+
+    while (lua_next(L, -2) != 0) {
+      if (lua_isstring(L, -1) && lua_isstring(L, -1)) {
+        const char *key = lua_tostring(L, -2);
+        const char *value = lua_tostring(L, -1);
+        setenv(key, value, 1);
+      }
+      lua_pop(L, 1);
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
