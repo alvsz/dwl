@@ -3649,15 +3649,15 @@ void lua_setup(void) {
 
   fprintf(stderr, "lua criado\n");
 
-  luaL_newmetatable(L, "Client");
-  lua_pushcfunction(L, lua_clientindex);
-  lua_setfield(L, -2, "__index");
-  lua_setglobal(L, "Client");
+  luaL_newmetatable(H, "Client");
+  lua_pushcfunction(H, lua_clientindex);
+  lua_setfield(H, -2, "__index");
+  lua_setglobal(H, "Client");
 
-  luaL_newmetatable(L, "Monitor");
-  lua_pushcfunction(L, lua_monitorindex);
-  lua_setfield(L, -2, "__index");
-  lua_setglobal(L, "Monitor");
+  luaL_newmetatable(H, "Monitor");
+  lua_pushcfunction(H, lua_monitorindex);
+  lua_setfield(H, -2, "__index");
+  lua_setglobal(H, "Monitor");
 
   lua_pushcfunction(H, lua_getclients);
   lua_setglobal(H, "get_clients");
