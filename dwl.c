@@ -417,7 +417,7 @@ static void xytonode(double x, double y, struct wlr_surface **psurface,
                      Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void zoom(const Arg *arg);
 
-static void lua_autostart(lua_State *L);
+static void lua_autostart(lua_State *);
 static int lua_clientindex(lua_State *);
 static int lua_createclient(lua_State *, Client *);
 static void lua_createclientmetatable(lua_State *);
@@ -2219,7 +2219,8 @@ void printstatus(void) {
   } else if (!lua_isfunction(H, -1)) {
     fprintf(stderr, "printstatus não é função\n");
   } else {
-    lua_pcall(H, 0, 0, 0);
+    if (lua_pcall(H, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
   }
 }
 
@@ -3385,7 +3386,8 @@ static void lua_autostart(lua_State *L) {
     fprintf(stderr, "autostart não é função\n");
     lua_pop(H, 1);
   } else {
-    lua_pcall(H, 0, 0, 0);
+    if (lua_pcall(H, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
   }
 }
 
@@ -3543,10 +3545,8 @@ void lua_openconfig(lua_State *L) {
   if (file) {
     fclose(file);
 
-    if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0)) {
+    if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
-      lua_close(L);
-    }
   } else {
     fprintf(stderr, "O arquivo rc.lua não existe.\n");
   }
