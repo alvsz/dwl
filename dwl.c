@@ -3463,7 +3463,7 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 }
 #endif
 
-static void lua_autostart(lua_State *L) {
+void lua_autostart(lua_State *L) {
   lua_getglobal(L, "autostart");
 
   if (lua_isnil(L, -1)) {
@@ -3478,7 +3478,7 @@ static void lua_autostart(lua_State *L) {
   }
 }
 
-static int lua_clientindex(lua_State *L) {
+int lua_clientindex(lua_State *L) {
   const char *appid, *title;
   LuaClient *lc;
   const char *key;
@@ -3507,7 +3507,7 @@ static int lua_clientindex(lua_State *L) {
   return 1;
 }
 
-static int lua_createclient(lua_State *L, Client *c) {
+int lua_createclient(lua_State *L, Client *c) {
   LuaClient *lc = (LuaClient *)lua_newuserdata(L, sizeof(LuaClient));
 
   luaL_getmetatable(L, "Client");
@@ -3517,7 +3517,7 @@ static int lua_createclient(lua_State *L, Client *c) {
   return 1;
 }
 
-static int lua_createmonitor(lua_State *L, Monitor *m) {
+int lua_createmonitor(lua_State *L, Monitor *m) {
   LuaMonitor *lm = (LuaMonitor *)lua_newuserdata(L, sizeof(LuaMonitor));
 
   luaL_getmetatable(L, "Monitor");
@@ -3527,7 +3527,7 @@ static int lua_createmonitor(lua_State *L, Monitor *m) {
   return 1;
 }
 
-static void lua_setupenv(lua_State *L) {
+void lua_setupenv(lua_State *L) {
   lua_getglobal(L, "env_cfg");
 
   if (lua_isnil(L, -1)) {
@@ -3547,9 +3547,9 @@ static void lua_setupenv(lua_State *L) {
       lua_pop(L, 1);
     }
   }
-};
+}
 
-static int lua_getclients(lua_State *L) {
+int lua_getclients(lua_State *L) {
   Client *c;
   int i = 1;
 
@@ -3564,7 +3564,7 @@ static int lua_getclients(lua_State *L) {
   return 1;
 }
 
-static int lua_getmonitors(lua_State *L) {
+int lua_getmonitors(lua_State *L) {
   Monitor *m;
   int i = 1;
 
@@ -3579,7 +3579,7 @@ static int lua_getmonitors(lua_State *L) {
   return 1;
 }
 
-static int lua_monitorindex(lua_State *L) {
+int lua_monitorindex(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
   const char *key = luaL_checkstring(L, 2);
 
