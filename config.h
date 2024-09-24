@@ -34,10 +34,6 @@ static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You ca
 /* logging */
 static int log_level = WLR_ERROR;
 
-/* Autostart */
-#include "autostart.h"
-
-
 /* NOTE: ALWAYS keep a rule declared even if you don't use rules (e.g leave at least one example) */
 #define APP_TERM                "alacritty"
 #define CLASS_SP                "ScratchPad"
