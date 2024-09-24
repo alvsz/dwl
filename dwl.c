@@ -2288,13 +2288,7 @@ void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 }
 
 void printstatus(void) {
-  lua_getglobal(H, "printstatus");
-
-  if (lua_isnil(H, -1)) {
-    fprintf(stderr, "não existe função printstatus\n");
-  } else if (!lua_isfunction(H, -1)) {
-    fprintf(stderr, "printstatus não é função\n");
-  } else {
+  if (lua_getconfig(H, "printstatus", LUA_TFUNCTION)) {
     if (lua_pcall(H, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
   }
@@ -3466,15 +3460,7 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 #endif
 
 void lua_autostart(lua_State *L) {
-  lua_getglobal(L, "autostart");
-
-  if (lua_isnil(L, -1)) {
-    fprintf(stderr, "não existe função autostart\n");
-    lua_pop(L, 1);
-  } else if (!lua_isfunction(L, -1)) {
-    fprintf(stderr, "autostart não é função\n");
-    lua_pop(L, 1);
-  } else {
+  if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {
     if (lua_pcall(L, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
   }
@@ -3683,7 +3669,7 @@ void lua_setup(void) {
 }
 
 void lua_setupenv(lua_State *L) {
-  if (lua_getconfig(L, "env_cfg", LUA_TTABLE)) {
+  if (lua_getconfig(L, "env", LUA_TTABLE)) {
     lua_pushnil(L);
 
     while (lua_next(L, -2) != 0) {
