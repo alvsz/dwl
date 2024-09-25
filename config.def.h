@@ -18,6 +18,7 @@ static float rootcolor[]             = COLOR(0x222222ff);
 static float bordercolor[]           = COLOR(0x444444ff);
 static float focuscolor[]            = COLOR(0x005577ff);
 static float urgentcolor[]           = COLOR(0xff0000ff);
+static float floatcolor[]            = COLOR(0xff0000ff);
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You can also use glsl colors */
 

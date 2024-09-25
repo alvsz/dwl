@@ -729,6 +729,7 @@ void buttonpress(struct wl_listener *listener, void *data) {
       /* Drop the window off on its new monitor */
       selmon = xytomon(cursor->x, cursor->y);
       setmon(grabc, selmon, 0);
+      grabc = NULL;
       return;
     } else {
       cursor_mode = CurNormal;
@@ -1554,7 +1555,8 @@ void focusclient(Client *c, int lift) {
        * issues with winecfg and probably other clients */
     } else if (old_c && !client_is_unmanaged(old_c) &&
                (!c || !client_wants_focus(c))) {
-      client_set_border_color(old_c, bordercolor);
+      client_set_border_color(old_c,
+                              old_c->isfloating ? floatcolor : bordercolor);
 
       client_activate_surface(old, 0);
     }
@@ -2524,6 +2526,11 @@ void setfloating(Client *c, int floating) {
       &c->scene->node, layers[c->isfullscreen || (p && p->isfullscreen) ? LyrFS
                               : c->isfloating ? LyrFloat
                                               : LyrTile]);
+  if (!grabc && floating)
+    for (int i = 0; i < 4; i++) {
+      wlr_scene_rect_set_color(c->border[i], floatcolor);
+      wlr_scene_node_lower_to_bottom(&c->border[i]->node);
+    }
   arrange(c->mon);
   printstatus();
 }
