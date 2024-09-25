@@ -426,15 +426,16 @@ static void xytonode(double x, double y, struct wlr_surface **psurface,
                      Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void zoom(const Arg *arg);
 
-static void lua_autostart(lua_State *);
-static int lua_clientindex(lua_State *);
-static int lua_createclient(lua_State *, Client *);
-static int lua_createmonitor(lua_State *, Monitor *);
-static int lua_getconfig(lua_State *, const char *, int);
-static int lua_monitorindex(lua_State *);
-static void lua_openconfigfile(lua_State *);
+static void lua_autostart(lua_State *L);
+static int lua_clientindex(lua_State *L);
+static int lua_createclient(lua_State *L, Client *c);
+static int lua_createmonitor(lua_State *L, Monitor *m);
+static int lua_getconfig(lua_State *L, const char *key, int t);
+static int lua_monitorindex(lua_State *L);
+static void lua_openconfigfile(lua_State *L);
+static void lua_reloadconfig(const Arg *arg);
 static void lua_setup(void);
-static void lua_setupenv(lua_State *);
+static void lua_setupenv(lua_State *L);
 
 /* variables */
 static const char broken[] = "broken";
@@ -3553,6 +3554,7 @@ static int lua_getconfig(lua_State *L, const char *key, int t) {
     lua_pop(L, 1);
     return 0;
   }
+
   if (!lua_istable(L, -1)) {
     fprintf(stderr, "dwl_cfg não é uma tabela\n");
     lua_pop(L, 1);
@@ -3642,6 +3644,8 @@ void lua_openconfigfile(lua_State *L) {
     fprintf(stderr, "O arquivo rc.lua não existe.\n");
   }
 }
+
+static void lua_reloadconfig(const Arg *arg) { lua_openconfigfile(H); };
 
 void lua_setup(void) {
   H = luaL_newstate();
