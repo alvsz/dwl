@@ -528,6 +528,8 @@ struct Pertag {
       *ltidxs[TAGCOUNT + 1][2]; /* matrix of tags and layouts indexes  */
 };
 
+#include "env.c"
+
 /* function implementations */
 void applybounds(Client *c, struct wlr_box *bbox) {
   /* set minimum possible */
@@ -1301,6 +1303,8 @@ void createpointer(struct wlr_pointer *pointer) {
       libinput_device_config_accel_set_profile(device, accel_profile);
       libinput_device_config_accel_set_speed(device, accel_speed);
     }
+
+    inputconfig(device);
   }
 
   wlr_cursor_attach_input_device(cursor, &pointer->base);
@@ -3707,6 +3711,7 @@ int main(int argc, char *argv[]) {
   /* Wayland requires XDG_RUNTIME_DIR for creating its communications socket */
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
+  loadtheme();
   setup();
   lua_setup();
   run(startup_cmd);
