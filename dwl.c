@@ -2514,9 +2514,9 @@ void run(char *startup_cmd) {
       }
     }
 
-    printf("iteração\n");
-
     wl_display_flush_clients(dpy);
+
+    printf("iteração\n");
   }
 }
 
