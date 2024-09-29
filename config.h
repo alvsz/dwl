@@ -80,20 +80,20 @@ static const int repeat_rate = 25;
 static const int repeat_delay = 600;
 
 /* Trackpad */
-static const int tap_to_click = 1;
-static const int tap_and_drag = 1;
-static const int drag_lock = 1;
-static const int natural_scrolling = 1;
-static const int disable_while_typing = 1;
-static const int left_handed = 0;
-static const int middle_button_emulation = 0;
+static int tap_to_click = 1;
+static int tap_and_drag = 1;
+static int drag_lock = 1;
+static int natural_scrolling = 1;
+static int disable_while_typing = 1;
+static int left_handed = 0;
+static int middle_button_emulation = 0;
 
-static const enum libinput_config_scroll_method scroll_method = LIBINPUT_CONFIG_SCROLL_EDGE;
-static const enum libinput_config_click_method click_method = LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
-static const uint32_t send_events_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
-static const enum libinput_config_accel_profile accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
-static const double accel_speed = 0.0;
-static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TAP_MAP_LRM;
+static enum libinput_config_scroll_method scroll_method = LIBINPUT_CONFIG_SCROLL_EDGE;
+static enum libinput_config_click_method click_method = LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
+static uint32_t send_events_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
+static enum libinput_config_accel_profile accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
+static double accel_speed = 0.0;
+static enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TAP_MAP_LRM;
 
 #define MODKEY WLR_MODIFIER_LOGO
 
