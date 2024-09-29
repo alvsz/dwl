@@ -9,6 +9,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <math.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -388,6 +389,7 @@ static void requeststartdrag(struct wl_listener *listener, void *data);
 static void requestmonstate(struct wl_listener *listener, void *data);
 static void resize(Client *c, struct wlr_box geo, int interact);
 static void run(char *startup_cmd);
+static void *runmainloop(void *arg);
 static void setcursor(struct wl_listener *listener, void *data);
 static void setcursorshape(struct wl_listener *listener, void *data);
 static void setfloating(Client *c, int floating);
@@ -434,8 +436,9 @@ static int lua_getconfig(lua_State *L, const char *key, int t);
 static int lua_getconfigfield(lua_State *L, const char *key, int t);
 static void lua_inputconfig(lua_State *L);
 static int lua_monitorindex(lua_State *L);
-static void lua_openconfigfile(lua_State *L);
+static void lua_openconfigfile(lua_State *L, const char *file);
 static void lua_reloadconfig(const Arg *arg);
+static void *lua_runthread(void *arg);
 static void lua_setaccelprofile(lua_State *L);
 static void lua_setaccelspeed(lua_State *L);
 static void lua_setclickmethod(lua_State *L);
@@ -531,7 +534,8 @@ static xcb_atom_t netatom[NetLast];
 
 #include "env.c"
 
-lua_State *H;
+lua_State *H, *A;
+pthread_t main_loop, b_loop;
 
 struct Pertag {
   unsigned int curtag, prevtag;      /* current and previous tag */
@@ -2495,7 +2499,18 @@ void run(char *startup_cmd) {
    * compositor. Starting the backend rigged up all of the necessary event
    * loop configuration to listen to libinput events, DRM events, generate
    * frame events at the refresh rate, and so on. */
+  if (pthread_create(&main_loop, NULL, runmainloop, NULL)) {
+    die("couldn't run main loop");
+  }
+
+  if (pthread_create(&b_loop, NULL, lua_runthread, NULL)) {
+    die("couldn't run b loop");
+  }
+}
+
+void *runmainloop(void *arg) {
   wl_display_run(dpy);
+  return NULL;
 }
 
 void setcursor(struct wl_listener *listener, void *data) {
@@ -3652,10 +3667,10 @@ int lua_monitorindex(lua_State *L) {
   return 1;
 }
 
-void lua_openconfigfile(lua_State *L) {
+void lua_openconfigfile(lua_State *L, const char *file) {
   char *config_dir, *path, *home;
   int err;
-  FILE *file;
+  FILE *f;
 
   config_dir = getenv("XDG_CONFIG_HOME");
 
@@ -3677,16 +3692,16 @@ void lua_openconfigfile(lua_State *L) {
     }
   }
 
-  err = asprintf(&path, "%s/dwl/rc.lua", config_dir);
+  err = asprintf(&path, "%s/dwl/%s.lua", config_dir, file);
   if (err == -1) {
     fprintf(stderr, "erro no asprintf");
     exit(1);
   }
 
-  file = fopen(path, "r");
+  f = fopen(path, "r");
 
-  if (file) {
-    fclose(file);
+  if (f) {
+    fclose(f);
 
     if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
@@ -3696,12 +3711,42 @@ void lua_openconfigfile(lua_State *L) {
 }
 
 void lua_reloadconfig(const Arg *arg) {
-  lua_openconfigfile(H);
+  lua_openconfigfile(H, "rc");
 
   if (lua_getconfig(H, "reload", LUA_TFUNCTION)) {
     if (lua_pcall(H, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
   }
+
+  lua_openconfigfile(A, "shell");
+
+  if (lua_getconfig(A, "reload", LUA_TFUNCTION)) {
+    if (lua_pcall(A, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(A, -1));
+  }
+}
+
+void *lua_runthread(void *arg) {
+  // luaL_newmetatable(A, "Client");
+  // lua_pushcfunction(A, lua_clientindex);
+  // lua_setfield(A, -2, "__index");
+  // lua_setglobal(A, "Client");
+  //
+  // luaL_newmetatable(A, "Monitor");
+  // lua_pushcfunction(A, lua_monitorindex);
+  // lua_setfield(A, -2, "__index");
+  // lua_setglobal(A, "Monitor");
+
+  lua_pushcfunction(A, lua_getclients);
+  lua_setglobal(A, "get_clients");
+
+  lua_pushcfunction(A, lua_getmonitors);
+  lua_setglobal(A, "get_monitors");
+
+  lua_openconfigfile(A, "shell");
+  lua_autostart(A);
+
+  return NULL;
 }
 
 void lua_setaccelprofile(lua_State *L) {
@@ -3853,7 +3898,7 @@ void lua_setup(void) {
   lua_pushcfunction(H, lua_getmonitors);
   lua_setglobal(H, "get_monitors");
 
-  lua_openconfigfile(H);
+  lua_openconfigfile(H, "rc");
 }
 
 void lua_setupenv(lua_State *L) {
