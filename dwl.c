@@ -244,6 +244,8 @@ struct Monitor {
   int nmaster;
   char ltsymbol[16];
   int asleep;
+  char *name;
+  float scale;
 };
 
 typedef struct {
@@ -1173,6 +1175,7 @@ void createmon(struct wl_listener *listener, void *data) {
 
   m = wlr_output->data = ecalloc(1, sizeof(*m));
   m->wlr_output = wlr_output;
+  m->name = strdup(wlr_output->name);
 
   for (i = 0; i < LENGTH(m->layers); i++)
     wl_list_init(&m->layers[i]);
@@ -1186,15 +1189,16 @@ void createmon(struct wl_listener *listener, void *data) {
   /* Initialize monitor state using configured rules */
   m->tagset[0] = m->tagset[1] = 1;
   for (r = monrules; r < END(monrules); r++) {
-    if (!r->name || strstr(wlr_output->name, r->name)) {
+    if (!r->name || strstr(m->name, r->name)) {
       m->m.x = r->x;
       m->m.y = r->y;
       m->mfact = r->mfact;
       m->nmaster = r->nmaster;
       m->lt[0] = r->lt;
       m->lt[1] = &layouts[LENGTH(layouts) > 1 && r->lt != &layouts[1]];
+      m->scale = r->scale;
       strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, LENGTH(m->ltsymbol));
-      wlr_output_state_set_scale(&state, r->scale);
+      wlr_output_state_set_scale(&state, m->scale);
       wlr_output_state_set_transform(&state, r->rr);
       break;
     }
@@ -3511,12 +3515,60 @@ int lua_clientindex(lua_State *L) {
 
     lua_pushstring(L, title);
     return 1;
+  } else if (strcmp(key, "tags") == 0) {
+    lua_pushinteger(L, lc->c->tags);
+    return 1;
+  } else if (strcmp(key, "type") == 0) {
+    lua_pushinteger(L, lc->c->type);
+    return 1;
+  } else if (strcmp(key, "geometry") == 0) {
+    lua_newtable(L);
+    lua_pushstring(L, "x");
+    lua_pushinteger(L, lc->c->geom.x);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "y");
+    lua_pushinteger(L, lc->c->geom.y);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "width");
+    lua_pushinteger(L, lc->c->geom.width);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "height");
+    lua_pushinteger(L, lc->c->geom.height);
+    lua_rawset(L, -3);
+
+    return 1;
   } else if (strcmp(key, "isfloating") == 0) {
     lua_pushinteger(L, lc->c->isfloating);
+    return 1;
+  } else if (strcmp(key, "isurgent") == 0) {
+    lua_pushinteger(L, lc->c->isurgent);
+    return 1;
+  } else if (strcmp(key, "isfullscreen") == 0) {
+    lua_pushinteger(L, lc->c->isfullscreen);
+    return 1;
+  } else if (strcmp(key, "nokill") == 0) {
+    lua_pushinteger(L, lc->c->nokill);
     return 1;
   }
 
   lua_pushnil(L);
+  return 1;
+}
+
+int lua_clientkill(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  if (lc->c && !lc->c->nokill)
+    client_send_close(lc->c);
+  return 0;
+}
+
+int lua_clientvisibleon(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 2, "Monitor");
+  lua_pushinteger(L, VISIBLEON(lc->c, lm->m));
   return 1;
 }
 
@@ -3644,7 +3696,44 @@ int lua_monitorindex(lua_State *L) {
     lua_pushinteger(L, lm->m->tagset[1]);
     return 1;
   } else if (strcmp(key, "name") == 0) {
-    lua_pushstring(L, lm->m->wlr_output->name);
+    lua_pushstring(L, lm->m->name);
+    return 1;
+  } else if (strcmp(key, "mfact") == 0) {
+    lua_pushnumber(L, lm->m->mfact);
+    return 1;
+  } else if (strcmp(key, "nmaster") == 0) {
+    lua_pushinteger(L, lm->m->nmaster);
+    return 1;
+  } else if (strcmp(key, "scale") == 0) {
+    lua_pushnumber(L, lm->m->scale);
+    return 1;
+  } else if (strcmp(key, "tags") == 0) {
+    lua_pushnumber(L, lm->m->seltags);
+    return 1;
+  } else if (strcmp(key, "gaps") == 0) {
+    lua_newtable(L);
+    lua_pushstring(L, "ih");
+    lua_pushnumber(L, lm->m->gappih);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "iv");
+    lua_pushnumber(L, lm->m->gappiv);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "oh");
+    lua_pushnumber(L, lm->m->gappoh);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "ov");
+    lua_pushnumber(L, lm->m->gappov);
+    lua_rawset(L, -3);
+
+    return 1;
+  } else if (strcmp(key, "x") == 0) {
+    lua_pushnumber(L, lm->m->m.x);
+    return 1;
+  } else if (strcmp(key, "y") == 0) {
+    lua_pushnumber(L, lm->m->m.y);
     return 1;
   }
 
@@ -3832,6 +3921,10 @@ void lua_setscrollmethod(lua_State *L) {
 }
 
 void lua_setup(void) {
+  const luaL_Reg client_metatable[] = {{"visibleon", lua_clientvisibleon},
+                                       {"kill", lua_clientkill},
+                                       {NULL, NULL}};
+
   H = luaL_newstate();
   luaL_openlibs(H);
 
@@ -3840,12 +3933,13 @@ void lua_setup(void) {
   luaL_newmetatable(H, "Client");
   lua_pushcfunction(H, lua_clientindex);
   lua_setfield(H, -2, "__index");
-  lua_setglobal(H, "Client");
+  luaL_setfuncs(H, client_metatable, 0);
+  lua_setglobal(H, "client");
 
   luaL_newmetatable(H, "Monitor");
   lua_pushcfunction(H, lua_monitorindex);
   lua_setfield(H, -2, "__index");
-  lua_setglobal(H, "Monitor");
+  lua_setglobal(H, "monitor");
 
   lua_pushcfunction(H, lua_getclients);
   lua_setglobal(H, "get_clients");
