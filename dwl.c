@@ -3617,14 +3617,23 @@ void lua_inputconfig(lua_State *L) {
     return;
 
   lua_setclickmethod(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_settap(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_settapanddrag(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_setnaturalscroll(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_setaccelprofile(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_setaccelspeed(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_setscrollmethod(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_setdwt(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_setmiddleemul(L);
+  lua_getconfig(L, "input_config", LUA_TTABLE);
   lua_setlefthanded(L);
 }
 
@@ -3721,8 +3730,6 @@ void lua_setaccelspeed(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_ACCELERATION", LUA_TNUMBER)) {
     val = lua_tonumber(L, -1);
-    lua_pop(L, 2);
-
     accel_speed = val;
   }
 }
@@ -3732,7 +3739,6 @@ void lua_setclickmethod(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_CLICK_METHOD", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
-    lua_pop(L, 2);
 
     if (strcmp(val, "NONE") == 0)
       click_method = LIBINPUT_CONFIG_CLICK_METHOD_NONE;
@@ -3749,8 +3755,6 @@ void lua_setdwt(lua_State *L) {
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_DISABLE_WHILE_TYPING",
                          LUA_TNUMBER)) {
     val = lua_tointeger(L, -1);
-    lua_pop(L, 2);
-
     disable_while_typing = val;
   }
 }
@@ -3760,8 +3764,6 @@ void lua_setlefthanded(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_LEFT_HANDED", LUA_TNUMBER)) {
     val = lua_tointeger(L, -1);
-    lua_pop(L, 2);
-
     left_handed = val;
   }
 }
@@ -3771,8 +3773,6 @@ void lua_setmiddleemul(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_MIDDLE_EMULATION", LUA_TNUMBER)) {
     val = lua_tointeger(L, -1);
-    lua_pop(L, 2);
-
     middle_button_emulation = val;
   }
 }
@@ -3782,8 +3782,6 @@ void lua_setnaturalscroll(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_NATURAL_SCROLL", LUA_TNUMBER)) {
     val = lua_tointeger(L, -1);
-    lua_pop(L, 2);
-
     natural_scrolling = val;
   }
 }
@@ -3793,8 +3791,6 @@ void lua_settap(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_TAP", LUA_TNUMBER)) {
     val = lua_tointeger(L, -1);
-    lua_pop(L, 2);
-
     tap_to_click = val;
   }
 }
@@ -3804,8 +3800,6 @@ void lua_settapanddrag(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_DRAG", LUA_TNUMBER)) {
     val = lua_tointeger(L, -1);
-    lua_pop(L, 2);
-
     tap_to_click = val;
   }
 }
@@ -3815,7 +3809,6 @@ void lua_setscrollmethod(lua_State *L) {
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_SCROLL_METHOD", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
-    lua_pop(L, 2);
 
     if (strcmp(val, "NO_SCROLL") == 0)
       scroll_method = LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
