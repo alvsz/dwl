@@ -3653,8 +3653,9 @@ int lua_monitorindex(lua_State *L) {
 }
 
 void lua_openconfigfile(lua_State *L) {
-  char *config_dir;
-  char *path;
+  char *config_dir, *path, *home;
+  int err;
+  FILE *file;
 
   config_dir = getenv("XDG_CONFIG_HOME");
 
@@ -3662,13 +3663,13 @@ void lua_openconfigfile(lua_State *L) {
     fprintf(stderr,
             "A variável de ambiente XDG_CONFIG_HOME não está definida.\n");
 
-    const char *home = getenv("HOME");
+    home = getenv("HOME");
 
     if (home == NULL) {
       fprintf(stderr, "A variável de ambiente HOME não está definida.\n");
       exit(1);
     }
-    int err = asprintf(&config_dir, "%s/.config", home);
+    err = asprintf(&config_dir, "%s/.config", home);
 
     if (err == -1) {
       fprintf(stderr, "erro no asprintf");
@@ -3676,13 +3677,13 @@ void lua_openconfigfile(lua_State *L) {
     }
   }
 
-  int err = asprintf(&path, "%s/dwl/rc.lua", config_dir);
+  err = asprintf(&path, "%s/dwl/rc.lua", config_dir);
   if (err == -1) {
     fprintf(stderr, "erro no asprintf");
     exit(1);
   }
 
-  FILE *file = fopen(path, "r");
+  file = fopen(path, "r");
 
   if (file) {
     fclose(file);
@@ -3701,7 +3702,7 @@ void lua_reloadconfig(const Arg *arg) {
     if (lua_pcall(H, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
   }
-};
+}
 
 void lua_setaccelprofile(lua_State *L) {
   const char *val;
