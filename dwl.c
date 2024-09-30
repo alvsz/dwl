@@ -3554,7 +3554,8 @@ int lua_clientindex(lua_State *L) {
     return 1;
   }
 
-  lua_pushnil(L);
+  luaL_getmetatable(L, "Client");
+  lua_getfield(L, -1, key);
   return 1;
 }
 
