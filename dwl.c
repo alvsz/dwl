@@ -2511,10 +2511,10 @@ void run(char *startup_cmd) {
     if (ret > 0) {
       if (fds[0].revents & POLLIN) {
         wl_event_loop_dispatch(event_loop, 0);
+
+        wl_display_flush_clients(dpy);
       }
     }
-
-    wl_display_flush_clients(dpy);
 
     printf("iteração\n");
   }
