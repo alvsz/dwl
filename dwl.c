@@ -2506,7 +2506,7 @@ void run(char *startup_cmd) {
   fds[0].events = POLLIN;
 
   while (1) {
-    int ret = poll(fds, 1, -1);
+    int ret = poll(fds, 1, 10);
 
     if (ret > 0) {
       if (fds[0].revents & POLLIN) {
