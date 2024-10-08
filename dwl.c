@@ -1,17 +1,24 @@
 /*
  * See LICENSE file for copyright and license details.
  */
+#define _GNU_SOURCE
 #include <getopt.h>
+#include <lauxlib.h>
 #include <libinput.h>
 #include <linux/input-event-codes.h>
+#include <lua.h>
+#include <lualib.h>
 #include <math.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 #include <wayland-server-core.h>
+#include <wayland-util.h>
 #include <wlr/backend.h>
 #include <wlr/backend/libinput.h>
 #include <wlr/interfaces/wlr_keyboard.h>
@@ -40,6 +47,7 @@
 #include <wlr/types/wlr_output_power_management_v1.h>
 #include <wlr/types/wlr_pointer.h>
 #include <wlr/types/wlr_pointer_constraints_v1.h>
+#include <wlr/types/wlr_pointer_gestures_v1.h>
 #include <wlr/types/wlr_presentation_time.h>
 #include <wlr/types/wlr_primary_selection.h>
 #include <wlr/types/wlr_primary_selection_v1.h>
@@ -68,7 +76,6 @@
 #include <xcb/xcb_icccm.h>
 #endif
 
-#include "dwl-ipc-unstable-v2-server-protocol.h"
 #include "util.h"
 
 /* macros */
@@ -168,12 +175,6 @@ typedef struct {
 } Client;
 
 typedef struct {
-  struct wl_list link;
-  struct wl_resource *resource;
-  Monitor *mon;
-} DwlIpcOutput;
-
-typedef struct {
   uint32_t mod;
   xkb_keysym_t keysym;
   void (*func)(const Arg *);
@@ -218,7 +219,6 @@ typedef struct {
 
 struct Monitor {
   struct wl_list link;
-  struct wl_list dwl_ipc_outputs;
   struct wlr_output *wlr_output;
   struct wlr_scene_output *scene_output;
   struct wlr_scene_rect *fullscreen_bg; /* See createmon() for info */
@@ -244,6 +244,8 @@ struct Monitor {
   int nmaster;
   char ltsymbol[16];
   int asleep;
+  char *name;
+  float scale;
 };
 
 typedef struct {
@@ -280,6 +282,14 @@ typedef struct {
   struct wl_listener destroy;
 } SessionLock;
 
+typedef struct {
+  Client *c;
+} LuaClient;
+
+typedef struct {
+  Monitor *m;
+} LuaMonitor;
+
 /* function declarations */
 static void applybounds(Client *c, struct wlr_box *bbox);
 static void applyrules(Client *c);
@@ -287,9 +297,16 @@ static void arrange(Monitor *m);
 static void arrangelayer(Monitor *m, struct wl_list *list,
                          struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
-static void autostartexec(void);
 static void axisnotify(struct wl_listener *listener, void *data);
 static void buttonpress(struct wl_listener *listener, void *data);
+static void swipe_begin(struct wl_listener *listener, void *data);
+static void swipe_update(struct wl_listener *listener, void *data);
+static void swipe_end(struct wl_listener *listener, void *data);
+static void pinch_begin(struct wl_listener *listener, void *data);
+static void pinch_update(struct wl_listener *listener, void *data);
+static void pinch_end(struct wl_listener *listener, void *data);
+static void hold_begin(struct wl_listener *listener, void *data);
+static void hold_end(struct wl_listener *listener, void *data);
 static void chvt(const Arg *arg);
 static void checkidleinhibitor(struct wlr_surface *exclude);
 static void cleanup(void);
@@ -325,29 +342,6 @@ static void destroysessionlock(struct wl_listener *listener, void *data);
 static void destroysessionmgr(struct wl_listener *listener, void *data);
 static void destroykeyboardgroup(struct wl_listener *listener, void *data);
 static Monitor *dirtomon(enum wlr_direction dir);
-static void dwl_ipc_manager_bind(struct wl_client *client, void *data,
-                                 uint32_t version, uint32_t id);
-static void dwl_ipc_manager_destroy(struct wl_resource *resource);
-static void dwl_ipc_manager_get_output(struct wl_client *client,
-                                       struct wl_resource *resource,
-                                       uint32_t id, struct wl_resource *output);
-static void dwl_ipc_manager_release(struct wl_client *client,
-                                    struct wl_resource *resource);
-static void dwl_ipc_output_destroy(struct wl_resource *resource);
-static void dwl_ipc_output_printstatus(Monitor *monitor);
-static void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output);
-static void dwl_ipc_output_set_client_tags(struct wl_client *client,
-                                           struct wl_resource *resource,
-                                           uint32_t and_tags,
-                                           uint32_t xor_tags);
-static void dwl_ipc_output_set_layout(struct wl_client *client,
-                                      struct wl_resource *resource,
-                                      uint32_t index);
-static void dwl_ipc_output_set_tags(struct wl_client *client,
-                                    struct wl_resource *resource,
-                                    uint32_t tagmask, uint32_t toggle_tagset);
-static void dwl_ipc_output_release(struct wl_client *client,
-                                   struct wl_resource *resource);
 static void focusclient(Client *c, int lift);
 static void focusmon(const Arg *arg);
 static void focusortogglematchingscratch(const Arg *arg);
@@ -414,7 +408,6 @@ static void startdrag(struct wl_listener *listener, void *data);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
-static void togglebar(const Arg *arg);
 static void togglefloating(const Arg *arg);
 static void togglefullscreen(const Arg *arg);
 static void togglegaps(const Arg *arg);
@@ -434,6 +427,31 @@ static Monitor *xytomon(double x, double y);
 static void xytonode(double x, double y, struct wlr_surface **psurface,
                      Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void zoom(const Arg *arg);
+
+static void lua_autostart(lua_State *L);
+static int lua_clientindex(lua_State *L);
+static int lua_createclient(lua_State *L, Client *c);
+static int lua_createmonitor(lua_State *L, Monitor *m);
+static int lua_getconfig(lua_State *L, const char *key, int t);
+static int lua_getconfigfield(lua_State *L, const char *key, int t);
+static int lua_getclients(lua_State *L);
+static int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm);
+static void lua_inputconfig(lua_State *L);
+static int lua_monitorindex(lua_State *L);
+static void lua_openconfigfile(lua_State *L);
+static void lua_reloadconfig(const Arg *arg);
+static void lua_setaccelprofile(lua_State *L);
+static void lua_setaccelspeed(lua_State *L);
+static void lua_setclickmethod(lua_State *L);
+static void lua_setdwt(lua_State *L);
+static void lua_setlefthanded(lua_State *L);
+static void lua_setmiddleemul(lua_State *L);
+static void lua_setnaturalscroll(lua_State *L);
+static void lua_settap(lua_State *L);
+static void lua_settapanddrag(lua_State *L);
+static void lua_setscrollmethod(lua_State *L);
+static void lua_setup(void);
+static void lua_setupenv(lua_State *L);
 
 /* variables */
 static const char broken[] = "broken";
@@ -468,6 +486,7 @@ static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
 static struct wlr_virtual_pointer_manager_v1 *virtual_pointer_mgr;
 static struct wlr_cursor_shape_manager_v1 *cursor_shape_mgr;
 static struct wlr_output_power_manager_v1 *power_mgr;
+static struct wlr_pointer_gestures_v1 *pointer_gestures;
 
 static struct wlr_pointer_constraints_v1 *pointer_constraints;
 static struct wlr_relative_pointer_manager_v1 *relative_pointer_mgr;
@@ -495,15 +514,6 @@ static Monitor *selmon;
 
 static int enablegaps = 1; /* enables gaps, used by togglegaps */
 
-static struct zdwl_ipc_manager_v2_interface dwl_manager_implementation = {
-    .release = dwl_ipc_manager_release,
-    .get_output = dwl_ipc_manager_get_output};
-static struct zdwl_ipc_output_v2_interface dwl_output_implementation = {
-    .release = dwl_ipc_output_release,
-    .set_tags = dwl_ipc_output_set_tags,
-    .set_layout = dwl_ipc_output_set_layout,
-    .set_client_tags = dwl_ipc_output_set_client_tags};
-
 #ifdef XWAYLAND
 static void activatex11(struct wl_listener *listener, void *data);
 static void associatex11(struct wl_listener *listener, void *data);
@@ -523,8 +533,9 @@ static xcb_atom_t netatom[NetLast];
 /* attempt to encapsulate suck into one file */
 #include "client.h"
 
-static pid_t *autostart_pids;
-static size_t autostart_len;
+#include "env.c"
+
+lua_State *H;
 
 struct Pertag {
   unsigned int curtag, prevtag;      /* current and previous tag */
@@ -681,28 +692,6 @@ void arrangelayers(Monitor *m) {
   }
 }
 
-void autostartexec(void) {
-  const char *const *p;
-  size_t i = 0;
-
-  /* count entries */
-  for (p = autostart; *p; autostart_len++, p++)
-    while (*++p)
-      ;
-
-  autostart_pids = calloc(autostart_len, sizeof(pid_t));
-  for (p = autostart; *p; i++, p++) {
-    if ((autostart_pids[i] = fork()) == 0) {
-      setsid();
-      execvp(*p, (char *const *)p);
-      die("dwl: execvp %s:", *p);
-    }
-    /* skip arguments */
-    while (*++p)
-      ;
-  }
-}
-
 void axisnotify(struct wl_listener *listener, void *data) {
   /* This event is forwarded by the cursor when a pointer emits an axis event,
    * for example when you move the scroll wheel. */
@@ -756,6 +745,7 @@ void buttonpress(struct wl_listener *listener, void *data) {
       /* Drop the window off on its new monitor */
       selmon = xytomon(cursor->x, cursor->y);
       setmon(grabc, selmon, 0);
+      grabc = NULL;
       return;
     } else {
       cursor_mode = CurNormal;
@@ -766,6 +756,71 @@ void buttonpress(struct wl_listener *listener, void *data) {
    * pointer focus that a button press has occurred */
   wlr_seat_pointer_notify_button(seat, event->time_msec, event->button,
                                  event->state);
+}
+
+void swipe_begin(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_swipe_begin_event *event = data;
+
+  // Forward swipe begin event to client
+  wlr_pointer_gestures_v1_send_swipe_begin(pointer_gestures, seat,
+                                           event->time_msec, event->fingers);
+}
+
+void swipe_update(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_swipe_update_event *event = data;
+
+  // Forward swipe update event to client
+  wlr_pointer_gestures_v1_send_swipe_update(
+      pointer_gestures, seat, event->time_msec, event->dx, event->dy);
+}
+
+void swipe_end(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_swipe_end_event *event = data;
+
+  // Forward swipe end event to client
+  wlr_pointer_gestures_v1_send_swipe_end(pointer_gestures, seat,
+                                         event->time_msec, event->cancelled);
+}
+
+void pinch_begin(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_pinch_begin_event *event = data;
+
+  // Forward pinch begin event to client
+  wlr_pointer_gestures_v1_send_pinch_begin(pointer_gestures, seat,
+                                           event->time_msec, event->fingers);
+}
+
+void pinch_update(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_pinch_update_event *event = data;
+
+  // Forward pinch update event to client
+  wlr_pointer_gestures_v1_send_pinch_update(
+      pointer_gestures, seat, event->time_msec, event->dx, event->dy,
+      event->scale, event->rotation);
+}
+
+void pinch_end(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_pinch_end_event *event = data;
+
+  // Forward pinch end event to client
+  wlr_pointer_gestures_v1_send_pinch_end(pointer_gestures, seat,
+                                         event->time_msec, event->cancelled);
+}
+
+void hold_begin(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_hold_begin_event *event = data;
+
+  // Forward hold begin event to client
+  wlr_pointer_gestures_v1_send_hold_begin(pointer_gestures, seat,
+                                          event->time_msec, event->fingers);
+}
+
+void hold_end(struct wl_listener *listener, void *data) {
+  struct wlr_pointer_hold_end_event *event = data;
+
+  // Forward hold end event to client
+  wlr_pointer_gestures_v1_send_hold_end(pointer_gestures, seat,
+                                        event->time_msec, event->cancelled);
 }
 
 void chvt(const Arg *arg) { wlr_session_change_vt(session, arg->ui); }
@@ -790,20 +845,12 @@ void checkidleinhibitor(struct wlr_surface *exclude) {
 }
 
 void cleanup(void) {
-  size_t i;
+  lua_close(H);
 #ifdef XWAYLAND
   wlr_xwayland_destroy(xwayland);
   xwayland = NULL;
 #endif
   wl_display_destroy_clients(dpy);
-
-  /* kill child processes */
-  for (i = 0; i < autostart_len; i++) {
-    if (0 < autostart_pids[i]) {
-      kill(autostart_pids[i], SIGTERM);
-      waitpid(autostart_pids[i], NULL, 0);
-    }
-  }
 
   if (child_pid > 0) {
     kill(-child_pid, SIGTERM);
@@ -827,10 +874,6 @@ void cleanupmon(struct wl_listener *listener, void *data) {
   Monitor *m = wl_container_of(listener, m, destroy);
   LayerSurface *l, *tmp;
   size_t i;
-
-  DwlIpcOutput *ipc_output, *ipc_output_tmp;
-  wl_list_for_each_safe(ipc_output, ipc_output_tmp, &m->dwl_ipc_outputs, link)
-      wl_resource_destroy(ipc_output->resource);
 
   /* m->layers[i] are intentionally not unlinked */
   for (i = 0; i < LENGTH(m->layers); i++) {
@@ -1134,8 +1177,7 @@ void createmon(struct wl_listener *listener, void *data) {
 
   m = wlr_output->data = ecalloc(1, sizeof(*m));
   m->wlr_output = wlr_output;
-
-  wl_list_init(&m->dwl_ipc_outputs);
+  m->name = strdup(wlr_output->name);
 
   for (i = 0; i < LENGTH(m->layers); i++)
     wl_list_init(&m->layers[i]);
@@ -1149,15 +1191,16 @@ void createmon(struct wl_listener *listener, void *data) {
   /* Initialize monitor state using configured rules */
   m->tagset[0] = m->tagset[1] = 1;
   for (r = monrules; r < END(monrules); r++) {
-    if (!r->name || strstr(wlr_output->name, r->name)) {
+    if (!r->name || strstr(m->name, r->name)) {
       m->m.x = r->x;
       m->m.y = r->y;
       m->mfact = r->mfact;
       m->nmaster = r->nmaster;
       m->lt[0] = r->lt;
       m->lt[1] = &layouts[LENGTH(layouts) > 1 && r->lt != &layouts[1]];
+      m->scale = r->scale;
       strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, LENGTH(m->ltsymbol));
-      wlr_output_state_set_scale(&state, r->scale);
+      wlr_output_state_set_scale(&state, m->scale);
       wlr_output_state_set_transform(&state, r->rr);
       break;
     }
@@ -1241,6 +1284,9 @@ void createnotify(struct wl_listener *listener, void *data) {
 
 void createpointer(struct wlr_pointer *pointer) {
   struct libinput_device *device;
+
+  lua_inputconfig(H);
+
   if (wlr_input_device_is_libinput(&pointer->base) &&
       (device = wlr_libinput_get_device_handle(&pointer->base))) {
 
@@ -1476,212 +1522,6 @@ Monitor *dirtomon(enum wlr_direction dir) {
   return selmon;
 }
 
-void dwl_ipc_manager_bind(struct wl_client *client, void *data,
-                          uint32_t version, uint32_t id) {
-  struct wl_resource *manager_resource =
-      wl_resource_create(client, &zdwl_ipc_manager_v2_interface, version, id);
-  if (!manager_resource) {
-    wl_client_post_no_memory(client);
-    return;
-  }
-  wl_resource_set_implementation(manager_resource, &dwl_manager_implementation,
-                                 NULL, dwl_ipc_manager_destroy);
-
-  zdwl_ipc_manager_v2_send_tags(manager_resource, TAGCOUNT);
-
-  for (unsigned int i = 0; i < LENGTH(layouts); i++)
-    zdwl_ipc_manager_v2_send_layout(manager_resource, layouts[i].symbol);
-}
-
-void dwl_ipc_manager_destroy(struct wl_resource *resource) {
-  /* No state to destroy */
-}
-
-void dwl_ipc_manager_get_output(struct wl_client *client,
-                                struct wl_resource *resource, uint32_t id,
-                                struct wl_resource *output) {
-  DwlIpcOutput *ipc_output;
-  Monitor *monitor = wlr_output_from_resource(output)->data;
-  struct wl_resource *output_resource =
-      wl_resource_create(client, &zdwl_ipc_output_v2_interface,
-                         wl_resource_get_version(resource), id);
-  if (!output_resource)
-    return;
-
-  ipc_output = ecalloc(1, sizeof(*ipc_output));
-  ipc_output->resource = output_resource;
-  ipc_output->mon = monitor;
-  wl_resource_set_implementation(output_resource, &dwl_output_implementation,
-                                 ipc_output, dwl_ipc_output_destroy);
-  wl_list_insert(&monitor->dwl_ipc_outputs, &ipc_output->link);
-  dwl_ipc_output_printstatus_to(ipc_output);
-}
-
-void dwl_ipc_manager_release(struct wl_client *client,
-                             struct wl_resource *resource) {
-  wl_resource_destroy(resource);
-}
-
-static void dwl_ipc_output_destroy(struct wl_resource *resource) {
-  DwlIpcOutput *ipc_output = wl_resource_get_user_data(resource);
-  wl_list_remove(&ipc_output->link);
-  free(ipc_output);
-}
-
-void dwl_ipc_output_printstatus(Monitor *monitor) {
-  DwlIpcOutput *ipc_output;
-  wl_list_for_each(ipc_output, &monitor->dwl_ipc_outputs, link)
-      dwl_ipc_output_printstatus_to(ipc_output);
-}
-
-void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
-  Monitor *monitor = ipc_output->mon;
-  Client *c, *focused;
-  int tagmask, state, numclients, focused_client, tag;
-  const char *title, *appid;
-  focused = focustop(monitor);
-  zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
-
-  for (tag = 0; tag < TAGCOUNT; tag++) {
-    numclients = state = focused_client = 0;
-    tagmask = 1 << tag;
-    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-      state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-
-    wl_list_for_each(c, &clients, link) {
-      if (c->mon != monitor)
-        continue;
-      if (!(c->tags & tagmask))
-        continue;
-      if (c == focused)
-        focused_client = 1;
-      if (c->isurgent)
-        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-
-      numclients++;
-    }
-    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
-                                focused_client);
-  }
-  title = focused ? client_get_title(focused) : "";
-  appid = focused ? client_get_appid(focused) : "";
-
-  zdwl_ipc_output_v2_send_layout(ipc_output->resource,
-                                 monitor->lt[monitor->sellt] - layouts);
-  zdwl_ipc_output_v2_send_title(ipc_output->resource, title);
-  zdwl_ipc_output_v2_send_appid(ipc_output->resource, appid);
-  zdwl_ipc_output_v2_send_layout_symbol(ipc_output->resource,
-                                        monitor->ltsymbol);
-  if (wl_resource_get_version(ipc_output->resource) >=
-      ZDWL_IPC_OUTPUT_V2_FULLSCREEN_SINCE_VERSION) {
-    zdwl_ipc_output_v2_send_fullscreen(ipc_output->resource,
-                                       focused ? focused->isfullscreen : 0);
-  }
-  if (wl_resource_get_version(ipc_output->resource) >=
-      ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
-    zdwl_ipc_output_v2_send_floating(ipc_output->resource,
-                                     focused ? focused->isfloating : 0);
-  }
-  zdwl_ipc_output_v2_send_frame(ipc_output->resource);
-}
-
-void dwl_ipc_output_set_client_tags(struct wl_client *client,
-                                    struct wl_resource *resource,
-                                    uint32_t and_tags, uint32_t xor_tags) {
-  DwlIpcOutput *ipc_output;
-  Monitor *monitor;
-  Client *selected_client;
-  unsigned int newtags = 0;
-
-  ipc_output = wl_resource_get_user_data(resource);
-  if (!ipc_output)
-    return;
-
-  monitor = ipc_output->mon;
-  selected_client = focustop(monitor);
-  if (!selected_client)
-    return;
-
-  newtags = (selected_client->tags & and_tags) ^ xor_tags;
-  if (!newtags)
-    return;
-
-  selected_client->tags = newtags;
-  if (selmon == monitor)
-    focusclient(focustop(monitor), 1);
-  arrange(selmon);
-  printstatus();
-}
-
-void dwl_ipc_output_set_layout(struct wl_client *client,
-                               struct wl_resource *resource, uint32_t index) {
-  DwlIpcOutput *ipc_output;
-  Client *c = NULL;
-  Monitor *monitor = NULL;
-
-  ipc_output = wl_resource_get_user_data(resource);
-  if (!ipc_output)
-    return;
-
-  monitor = ipc_output->mon;
-
-  if (monitor != selmon)
-    c = focustop(selmon);
-
-  if (index >= LENGTH(layouts))
-    return;
-  if (c) {
-    monitor = selmon;
-    selmon = ipc_output->mon;
-  }
-  setlayout(&(Arg){.v = &layouts[index]});
-  if (c) {
-    selmon = monitor;
-    focusclient(c, 0);
-  }
-}
-
-void dwl_ipc_output_set_tags(struct wl_client *client,
-                             struct wl_resource *resource, uint32_t tagmask,
-                             uint32_t toggle_tagset) {
-  DwlIpcOutput *ipc_output;
-  Client *c = NULL;
-  Monitor *monitor = NULL;
-  unsigned int newtags = tagmask & TAGMASK;
-
-  ipc_output = wl_resource_get_user_data(resource);
-  if (!ipc_output)
-    return;
-  monitor = ipc_output->mon;
-
-  if (monitor != selmon)
-    c = focustop(selmon);
-
-  if (!newtags)
-    return;
-
-  /* view toggles seltags for us so we un-toggle it */
-  if (!toggle_tagset) {
-    monitor->seltags ^= 1;
-    monitor->tagset[monitor->seltags] = 0;
-  }
-
-  if (c) {
-    monitor = selmon;
-    selmon = ipc_output->mon;
-  }
-  view(&(Arg){.ui = newtags});
-  if (c) {
-    selmon = monitor;
-    focusclient(c, 0);
-  }
-}
-
-void dwl_ipc_output_release(struct wl_client *client,
-                            struct wl_resource *resource) {
-  wl_resource_destroy(resource);
-}
-
 void focusclient(Client *c, int lift) {
   struct wlr_surface *old = seat->keyboard_state.focused_surface;
   int unused_lx, unused_ly, old_client_type;
@@ -1734,7 +1574,8 @@ void focusclient(Client *c, int lift) {
        * issues with winecfg and probably other clients */
     } else if (old_c && !client_is_unmanaged(old_c) &&
                (!c || !client_wants_focus(c))) {
-      client_set_border_color(old_c, bordercolor);
+      client_set_border_color(old_c,
+                              old_c->isfloating ? floatcolor : bordercolor);
 
       client_activate_surface(old, 0);
     }
@@ -1913,31 +1754,19 @@ void gpureset(struct wl_listener *listener, void *data) {
 
 void handlesig(int signo) {
   if (signo == SIGCHLD) {
+#ifdef XWAYLAND
     siginfo_t in;
     /* wlroots expects to reap the XWayland process itself, so we
      * use WNOWAIT to keep the child waitable until we know it's not
      * XWayland.
      */
-    while (!waitid(P_ALL, 0, &in, WEXITED | WNOHANG | WNOWAIT) && in.si_pid
-#ifdef XWAYLAND
-           && (!xwayland || in.si_pid != xwayland->server->pid)
-#endif
-    ) {
-      pid_t *p, *lim;
+    while (!waitid(P_ALL, 0, &in, WEXITED | WNOHANG | WNOWAIT) && in.si_pid &&
+           (!xwayland || in.si_pid != xwayland->server->pid))
       waitpid(in.si_pid, NULL, 0);
-      if (in.si_pid == child_pid)
-        child_pid = -1;
-      if (!(p = autostart_pids))
-        continue;
-      lim = &p[autostart_len];
-
-      for (; p < lim; p++) {
-        if (*p == in.si_pid) {
-          *p = -1;
-          break;
-        }
-      }
-    }
+#else
+    while (waitpid(-1, NULL, WNOHANG) > 0)
+      ;
+#endif
   } else if (signo == SIGINT || signo == SIGTERM) {
     quit(NULL);
   }
@@ -2485,8 +2314,10 @@ void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 }
 
 void printstatus(void) {
-  Monitor *m = NULL;
-  wl_list_for_each(m, &mons, link) dwl_ipc_output_printstatus(m);
+  if (lua_getconfig(H, "printstatus", LUA_TFUNCTION)) {
+    if (lua_pcall(H, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
+  }
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -2618,6 +2449,8 @@ void run(char *startup_cmd) {
     die("startup: display_add_socket_auto");
   setenv("WAYLAND_DISPLAY", socket, 1);
 
+  lua_setupenv(H);
+
   /* Start the backend. This will enumerate outputs and inputs, become the DRM
    * master, etc */
   if (!wlr_backend_start(backend))
@@ -2625,7 +2458,8 @@ void run(char *startup_cmd) {
 
   /* Now that the socket exists and the backend is started, run the startup
    * command */
-  autostartexec();
+  lua_autostart(H);
+
   if (startup_cmd) {
     int piperw[2];
     if (pipe(piperw) < 0)
@@ -2711,6 +2545,11 @@ void setfloating(Client *c, int floating) {
       &c->scene->node, layers[c->isfullscreen || (p && p->isfullscreen) ? LyrFS
                               : c->isfloating ? LyrFloat
                                               : LyrTile]);
+  if (!grabc && floating)
+    for (int i = 0; i < 4; i++) {
+      wlr_scene_rect_set_color(c->border[i], floatcolor);
+      wlr_scene_node_lower_to_bottom(&c->border[i]->node);
+    }
   arrange(c->mon);
   printstatus();
 }
@@ -3010,6 +2849,16 @@ void setup(void) {
   LISTEN_STATIC(&virtual_pointer_mgr->events.new_virtual_pointer,
                 virtualpointer);
 
+  pointer_gestures = wlr_pointer_gestures_v1_create(dpy);
+  LISTEN_STATIC(&cursor->events.swipe_begin, swipe_begin);
+  LISTEN_STATIC(&cursor->events.swipe_update, swipe_update);
+  LISTEN_STATIC(&cursor->events.swipe_end, swipe_end);
+  LISTEN_STATIC(&cursor->events.pinch_begin, pinch_begin);
+  LISTEN_STATIC(&cursor->events.pinch_update, pinch_update);
+  LISTEN_STATIC(&cursor->events.pinch_end, pinch_end);
+  LISTEN_STATIC(&cursor->events.hold_begin, hold_begin);
+  LISTEN_STATIC(&cursor->events.hold_end, hold_end);
+
   seat = wlr_seat_create(dpy, "seat0");
   LISTEN_STATIC(&seat->events.request_set_cursor, setcursor);
   LISTEN_STATIC(&seat->events.request_set_selection, setsel);
@@ -3023,9 +2872,6 @@ void setup(void) {
   output_mgr = wlr_output_manager_v1_create(dpy);
   LISTEN_STATIC(&output_mgr->events.apply, outputmgrapply);
   LISTEN_STATIC(&output_mgr->events.test, outputmgrtest);
-
-  wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 2, NULL,
-                   dwl_ipc_manager_bind);
 
   /* Make sure XWayland clients don't connect to the parent X server,
    * e.g when running in the x11 backend or the wayland backend and the
@@ -3138,12 +2984,6 @@ void tile(Monitor *m) {
     }
     i++;
   }
-}
-
-void togglebar(const Arg *arg) {
-  DwlIpcOutput *ipc_output;
-  wl_list_for_each(ipc_output, &selmon->dwl_ipc_outputs, link)
-      zdwl_ipc_output_v2_send_toggle_visibility(ipc_output->resource);
 }
 
 void togglefloating(const Arg *arg) {
@@ -3384,8 +3224,8 @@ void updatemons(struct wl_listener *listener, void *data) {
 
 void updatetitle(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_title);
-  if (c == focustop(c->mon))
-    printstatus();
+  // if (c == focustop(c->mon))
+  printstatus();
 }
 
 void urgent(struct wl_listener *listener, void *data) {
@@ -3650,6 +3490,506 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 }
 #endif
 
+void lua_autostart(lua_State *L) {
+  if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {
+    if (lua_pcall(L, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
+  }
+}
+
+int lua_clientindex(lua_State *L) {
+  const char *appid, *title;
+  LuaClient *lc;
+  const char *key;
+
+  lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  key = luaL_checkstring(L, 2);
+
+  if (strcmp(key, "app_id") == 0) {
+    if (!(appid = client_get_appid(lc->c)))
+      appid = broken;
+
+    lua_pushstring(L, appid);
+    return 1;
+  } else if (strcmp(key, "title") == 0) {
+    if (!(title = client_get_title(lc->c)))
+      title = broken;
+
+    lua_pushstring(L, title);
+    return 1;
+  } else if (strcmp(key, "tags") == 0) {
+    lua_pushinteger(L, lc->c->tags);
+    return 1;
+  } else if (strcmp(key, "type") == 0) {
+    lua_pushinteger(L, lc->c->type);
+    return 1;
+  } else if (strcmp(key, "monitor") == 0) {
+    lua_createmonitor(L, lc->c->mon);
+    return 1;
+  } else if (strcmp(key, "geometry") == 0) {
+    lua_newtable(L);
+    lua_pushstring(L, "x");
+    lua_pushinteger(L, lc->c->geom.x);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "y");
+    lua_pushinteger(L, lc->c->geom.y);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "width");
+    lua_pushinteger(L, lc->c->geom.width);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "height");
+    lua_pushinteger(L, lc->c->geom.height);
+    lua_rawset(L, -3);
+
+    return 1;
+  } else if (strcmp(key, "isfloating") == 0) {
+    lua_pushboolean(L, lc->c->isfloating);
+    return 1;
+  } else if (strcmp(key, "isurgent") == 0) {
+    lua_pushboolean(L, lc->c->isurgent);
+    return 1;
+  } else if (strcmp(key, "isfullscreen") == 0) {
+    lua_pushboolean(L, lc->c->isfullscreen);
+    return 1;
+  } else if (strcmp(key, "nokill") == 0) {
+    lua_pushboolean(L, lc->c->nokill);
+    return 1;
+  }
+
+  luaL_getmetatable(L, "Client");
+  lua_getfield(L, -1, key);
+  return 1;
+}
+
+int lua_clientkill(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  if (lc->c && !lc->c->nokill)
+    client_send_close(lc->c);
+  return 0;
+}
+
+int lua_clientvisibleon(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 2, "Monitor");
+  lua_pushboolean(L, VISIBLEON(lc->c, lm->m));
+  return 1;
+}
+
+int lua_createclient(lua_State *L, Client *c) {
+  LuaClient *lc = (LuaClient *)lua_newuserdata(L, sizeof(LuaClient));
+
+  luaL_getmetatable(L, "Client");
+  lua_setmetatable(L, -2);
+  lc->c = c;
+
+  return 1;
+}
+
+int lua_createmonitor(lua_State *L, Monitor *m) {
+  LuaMonitor *lm = (LuaMonitor *)lua_newuserdata(L, sizeof(LuaMonitor));
+
+  luaL_getmetatable(L, "Monitor");
+  lua_setmetatable(L, -2);
+  lm->m = m;
+
+  return 1;
+}
+
+int lua_getclients(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  lua_getclientsformonitor(L, lm);
+  return 1;
+}
+
+int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm) {
+  Client *c;
+  int i = 1;
+
+  lua_newtable(L);
+
+  wl_list_for_each(c, &clients, link) {
+    if (c->mon == lm->m) {
+      lua_pushinteger(L, i);
+      lua_createclient(L, c);
+      lua_rawset(L, -3);
+      i++;
+    }
+  }
+  return 1;
+}
+
+int lua_getmonitors(lua_State *L) {
+  Monitor *m;
+  int i = 1;
+
+  lua_newtable(L);
+
+  wl_list_for_each(m, &mons, link) {
+    lua_pushinteger(L, i);
+    lua_createmonitor(L, m);
+    lua_rawset(L, -3);
+    i++;
+  }
+  return 1;
+}
+
+int lua_getconfig(lua_State *L, const char *key, int t) {
+  lua_getglobal(L, "dwl_cfg");
+
+  if (lua_isnil(L, -1)) {
+    fprintf(stderr, "não tem variável dwl_cfg\n");
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  if (!lua_istable(L, -1)) {
+    fprintf(stderr, "dwl_cfg não é uma tabela\n");
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  if (lua_getconfigfield(L, key, t))
+    return 1;
+
+  return 0;
+}
+
+int lua_getconfigfield(lua_State *L, const char *key, int t) {
+  int type;
+
+  lua_pushstring(L, key);
+  lua_gettable(L, -2);
+
+  if (lua_isnil(L, -1)) {
+    fprintf(stderr, "não existe campo %s\n", key);
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  type = lua_type(L, -1);
+
+  if (type != t) {
+    fprintf(stderr, "%s não é um %s\n", key, lua_typename(L, t));
+    lua_pop(L, 1);
+    return 0;
+  }
+
+  return 1;
+}
+
+void lua_inputconfig(lua_State *L) {
+  if (!lua_getconfig(L, "input_config", LUA_TTABLE))
+    return;
+
+  lua_setclickmethod(L);
+  lua_settap(L);
+  lua_settapanddrag(L);
+  lua_setnaturalscroll(L);
+  lua_setaccelprofile(L);
+  lua_setaccelspeed(L);
+  lua_setscrollmethod(L);
+  lua_setdwt(L);
+  lua_setmiddleemul(L);
+  lua_setlefthanded(L);
+}
+
+int lua_monitorindex(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  const char *key = luaL_checkstring(L, 2);
+
+  if (strcmp(key, "layout") == 0) {
+    lua_pushstring(L, lm->m->ltsymbol);
+    return 1;
+  } else if (strcmp(key, "clients") == 0) {
+    lua_getclientsformonitor(L, lm);
+    return 1;
+  } else if (strcmp(key, "seltags") == 0) {
+    lua_pushinteger(L, lm->m->tagset[lm->m->seltags]);
+    return 1;
+    // } else if (strcmp(key, "tagset1") == 0) {
+    //   lua_pushinteger(L, lm->m->tagset[0]);
+    //   return 1;
+    // } else if (strcmp(key, "tagset2") == 0) {
+    //   lua_pushinteger(L, lm->m->tagset[1]);
+    //   return 1;
+  } else if (strcmp(key, "name") == 0) {
+    lua_pushstring(L, lm->m->name);
+    return 1;
+  } else if (strcmp(key, "mfact") == 0) {
+    lua_pushnumber(L, lm->m->mfact);
+    return 1;
+  } else if (strcmp(key, "nmaster") == 0) {
+    lua_pushinteger(L, lm->m->nmaster);
+    return 1;
+  } else if (strcmp(key, "scale") == 0) {
+    lua_pushnumber(L, lm->m->scale);
+    return 1;
+  } else if (strcmp(key, "gaps") == 0) {
+    lua_newtable(L);
+    lua_pushstring(L, "ih");
+    lua_pushnumber(L, lm->m->gappih);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "iv");
+    lua_pushnumber(L, lm->m->gappiv);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "oh");
+    lua_pushnumber(L, lm->m->gappoh);
+    lua_rawset(L, -3);
+
+    lua_pushstring(L, "ov");
+    lua_pushnumber(L, lm->m->gappov);
+    lua_rawset(L, -3);
+
+    return 1;
+  } else if (strcmp(key, "x") == 0) {
+    lua_pushnumber(L, lm->m->m.x);
+    return 1;
+  } else if (strcmp(key, "y") == 0) {
+    lua_pushnumber(L, lm->m->m.y);
+    return 1;
+  }
+
+  luaL_getmetatable(L, "Monitor");
+  lua_getfield(L, -1, key);
+  return 1;
+}
+
+void lua_openconfigfile(lua_State *L) {
+  char *config_dir, *path, *home;
+  int err;
+  FILE *file;
+
+  config_dir = getenv("XDG_CONFIG_HOME");
+
+  if (config_dir == NULL) {
+    fprintf(stderr,
+            "A variável de ambiente XDG_CONFIG_HOME não está definida.\n");
+
+    home = getenv("HOME");
+
+    if (home == NULL) {
+      fprintf(stderr, "A variável de ambiente HOME não está definida.\n");
+      exit(1);
+    }
+    err = asprintf(&config_dir, "%s/.config", home);
+
+    if (err == -1) {
+      fprintf(stderr, "erro no asprintf");
+      exit(1);
+    }
+  }
+
+  err = asprintf(&path, "%s/dwl/rc.lua", config_dir);
+  if (err == -1) {
+    fprintf(stderr, "erro no asprintf");
+    exit(1);
+  }
+
+  file = fopen(path, "r");
+
+  if (file) {
+    fclose(file);
+
+    if (luaL_loadfile(L, path) || lua_pcall(L, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
+  } else {
+    fprintf(stderr, "O arquivo rc.lua não existe.\n");
+  }
+}
+
+void lua_reloadconfig(const Arg *arg) {
+  lua_openconfigfile(H);
+
+  if (lua_getconfig(H, "reload", LUA_TFUNCTION)) {
+    if (lua_pcall(H, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
+  }
+}
+
+void lua_setaccelprofile(lua_State *L) {
+  const char *val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_ACCELERATION_PROFILE",
+                         LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    if (strcmp(val, "FLAT") == 0)
+      accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+    else if (strcmp(val, "ADAPTIVE") == 0)
+      accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
+  }
+}
+
+void lua_setaccelspeed(lua_State *L) {
+  double val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_ACCELERATION", LUA_TNUMBER)) {
+    val = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    accel_speed = val;
+  }
+}
+
+void lua_setclickmethod(lua_State *L) {
+  const char *val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_CLICK_METHOD", LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    if (strcmp(val, "NONE") == 0)
+      click_method = LIBINPUT_CONFIG_CLICK_METHOD_NONE;
+    else if (strcmp(val, "BUTTON_AREAS") == 0)
+      click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+    else if (strcmp(val, "CLICKFINGER") == 0)
+      click_method = LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
+  }
+}
+
+void lua_setdwt(lua_State *L) {
+  int val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_DISABLE_WHILE_TYPING",
+                         LUA_TNUMBER)) {
+    val = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    disable_while_typing = val;
+  }
+}
+
+void lua_setlefthanded(lua_State *L) {
+  int val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_LEFT_HANDED", LUA_TNUMBER)) {
+    val = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    left_handed = val;
+  }
+}
+
+void lua_setmiddleemul(lua_State *L) {
+  int val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_MIDDLE_EMULATION", LUA_TNUMBER)) {
+    val = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    middle_button_emulation = val;
+  }
+}
+
+void lua_setnaturalscroll(lua_State *L) {
+  int val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_NATURAL_SCROLL", LUA_TNUMBER)) {
+    val = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    natural_scrolling = val;
+  }
+}
+
+void lua_settap(lua_State *L) {
+  int val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_TAP", LUA_TNUMBER)) {
+    val = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    tap_to_click = val;
+  }
+}
+
+void lua_settapanddrag(lua_State *L) {
+  int val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_DRAG", LUA_TNUMBER)) {
+    val = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    tap_to_click = val;
+  }
+}
+
+void lua_setscrollmethod(lua_State *L) {
+  const char *val;
+
+  if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_SCROLL_METHOD", LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    if (strcmp(val, "NO_SCROLL") == 0)
+      scroll_method = LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
+    else if (strcmp(val, "2FG") == 0)
+      scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
+    else if (strcmp(val, "EDGE") == 0)
+      scroll_method = LIBINPUT_CONFIG_SCROLL_EDGE;
+    else if (strcmp(val, "ON_BUTTON_DOWN") == 0)
+      scroll_method = LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN;
+  }
+}
+
+void lua_setup(void) {
+  const luaL_Reg client_metatable[] = {{"visibleon", lua_clientvisibleon},
+                                       {"kill", lua_clientkill},
+                                       {NULL, NULL}};
+
+  const luaL_Reg monitor_metatable[] = {{"get_clients", lua_getclients},
+                                        {NULL, NULL}};
+
+  H = luaL_newstate();
+  luaL_openlibs(H);
+
+  fprintf(stderr, "lua criado\n");
+
+  luaL_newmetatable(H, "Client");
+  lua_pushcfunction(H, lua_clientindex);
+  lua_setfield(H, -2, "__index");
+  luaL_setfuncs(H, client_metatable, 0);
+  // lua_setglobal(H, "client");
+
+  luaL_newmetatable(H, "Monitor");
+  lua_pushcfunction(H, lua_monitorindex);
+  lua_setfield(H, -2, "__index");
+  luaL_setfuncs(H, monitor_metatable, 0);
+  // lua_setglobal(H, "monitor");
+
+  // lua_pushcfunction(H, lua_getclients);
+  // lua_setglobal(H, "get_clients");
+
+  lua_pushcfunction(H, lua_getmonitors);
+  lua_setglobal(H, "get_monitors");
+
+  lua_openconfigfile(H);
+}
+
+void lua_setupenv(lua_State *L) {
+  const char *key;
+  const char *value;
+
+  if (lua_getconfig(L, "env", LUA_TTABLE)) {
+    lua_pushnil(L);
+
+    while (lua_next(L, -2) != 0) {
+      if (lua_isstring(L, -1) && lua_isstring(L, -2)) {
+        key = lua_tostring(L, -2);
+        value = lua_tostring(L, -1);
+        setenv(key, value, 1);
+      }
+      lua_pop(L, 1);
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   char *startup_cmd = NULL;
   int c;
@@ -3670,7 +4010,9 @@ int main(int argc, char *argv[]) {
   /* Wayland requires XDG_RUNTIME_DIR for creating its communications socket */
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
+  loadtheme();
   setup();
+  lua_setup();
   run(startup_cmd);
   cleanup();
   return EXIT_SUCCESS;
