@@ -3978,19 +3978,13 @@ void lua_setup(void) {
   lua_pushcfunction(H, lua_clientindex);
   lua_setfield(H, -2, "__index");
   luaL_setfuncs(H, client_metatable, 0);
-  // lua_setglobal(H, "client");
 
   luaL_newmetatable(H, "Monitor");
   lua_pushcfunction(H, lua_monitorindex);
   lua_setfield(H, -2, "__index");
   luaL_setfuncs(H, monitor_metatable, 0);
-  // lua_setglobal(H, "monitor");
 
-  // lua_pushcfunction(H, lua_getclients);
-  // lua_setglobal(H, "get_clients");
-
-  lua_pushcfunction(H, lua_getmonitors);
-  lua_setglobal(H, "get_monitors");
+  lua_register(H, "get_monitors", lua_getmonitors);
 
   lua_openconfigfile(H);
 }
