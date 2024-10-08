@@ -2444,6 +2444,9 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 }
 
 void run(char *startup_cmd) {
+  int wayland_fd;
+  struct pollfd fds[1];
+
   /* Add a Unix socket to the Wayland display. */
   const char *socket = wl_display_add_socket_auto(dpy);
   if (!socket)
@@ -2504,9 +2507,7 @@ void run(char *startup_cmd) {
    * frame events at the refresh rate, and so on. */
   // wl_display_run(dpy);
 
-  int wayland_fd = wl_event_loop_get_fd(event_loop);
-
-  struct pollfd fds[1];
+  wayland_fd = wl_event_loop_get_fd(event_loop);
 
   fds[0].fd = wayland_fd;
   fds[0].events = POLLIN;
