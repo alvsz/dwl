@@ -434,6 +434,8 @@ static int lua_createclient(lua_State *L, Client *c);
 static int lua_createmonitor(lua_State *L, Monitor *m);
 static int lua_getconfig(lua_State *L, const char *key, int t);
 static int lua_getconfigfield(lua_State *L, const char *key, int t);
+static int lua_getclients(lua_State *L);
+static int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm);
 static void lua_inputconfig(lua_State *L);
 static int lua_monitorindex(lua_State *L);
 static void lua_openconfigfile(lua_State *L);
@@ -3594,16 +3596,24 @@ int lua_createmonitor(lua_State *L, Monitor *m) {
 }
 
 int lua_getclients(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  lua_getclientsformonitor(L, lm);
+  return 1;
+}
+
+int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm) {
   Client *c;
   int i = 1;
 
   lua_newtable(L);
 
   wl_list_for_each(c, &clients, link) {
-    lua_pushinteger(L, i);
-    lua_createclient(L, c);
-    lua_rawset(L, -3);
-    i++;
+    if (c->mon == lm->m) {
+      lua_pushinteger(L, i);
+      lua_createclient(L, c);
+      lua_rawset(L, -3);
+      i++;
+    }
   }
   return 1;
 }
@@ -3689,6 +3699,9 @@ int lua_monitorindex(lua_State *L) {
 
   if (strcmp(key, "layout") == 0) {
     lua_pushstring(L, lm->m->ltsymbol);
+    return 1;
+  } else if (strcmp(key, "clients") == 0) {
+    lua_getclientsformonitor(L, lm);
     return 1;
   } else if (strcmp(key, "tagset1") == 0) {
     lua_pushinteger(L, lm->m->tagset[0]);
@@ -3926,6 +3939,10 @@ void lua_setup(void) {
                                        {"kill", lua_clientkill},
                                        {NULL, NULL}};
 
+  const luaL_Reg monitor_metatable[] = {{"get_clients", lua_clientvisibleon},
+                                        {"kill", lua_clientkill},
+                                        {NULL, NULL}};
+
   H = luaL_newstate();
   luaL_openlibs(H);
 
@@ -3935,15 +3952,15 @@ void lua_setup(void) {
   lua_pushcfunction(H, lua_clientindex);
   lua_setfield(H, -2, "__index");
   luaL_setfuncs(H, client_metatable, 0);
-  lua_setglobal(H, "client");
+  // lua_setglobal(H, "client");
 
   luaL_newmetatable(H, "Monitor");
   lua_pushcfunction(H, lua_monitorindex);
   lua_setfield(H, -2, "__index");
-  lua_setglobal(H, "monitor");
+  // lua_setglobal(H, "monitor");
 
-  lua_pushcfunction(H, lua_getclients);
-  lua_setglobal(H, "get_clients");
+  // lua_pushcfunction(H, lua_getclients);
+  // lua_setglobal(H, "get_clients");
 
   lua_pushcfunction(H, lua_getmonitors);
   lua_setglobal(H, "get_monitors");
