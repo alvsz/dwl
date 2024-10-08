@@ -3523,6 +3523,9 @@ int lua_clientindex(lua_State *L) {
   } else if (strcmp(key, "type") == 0) {
     lua_pushinteger(L, lc->c->type);
     return 1;
+  } else if (strcmp(key, "monitor") == 0) {
+    lua_createmonitor(L, lc->c->mon);
+    return 1;
   } else if (strcmp(key, "geometry") == 0) {
     lua_newtable(L);
     lua_pushstring(L, "x");
@@ -3751,7 +3754,8 @@ int lua_monitorindex(lua_State *L) {
     return 1;
   }
 
-  lua_pushnil(L);
+  luaL_getmetatable(L, "Monitor");
+  lua_getfield(L, -1, key);
   return 1;
 }
 
@@ -3939,8 +3943,7 @@ void lua_setup(void) {
                                        {"kill", lua_clientkill},
                                        {NULL, NULL}};
 
-  const luaL_Reg monitor_metatable[] = {{"get_clients", lua_clientvisibleon},
-                                        {"kill", lua_clientkill},
+  const luaL_Reg monitor_metatable[] = {{"get_clients", lua_getclients},
                                         {NULL, NULL}};
 
   H = luaL_newstate();
@@ -3957,6 +3960,7 @@ void lua_setup(void) {
   luaL_newmetatable(H, "Monitor");
   lua_pushcfunction(H, lua_monitorindex);
   lua_setfield(H, -2, "__index");
+  luaL_setfuncs(H, monitor_metatable, 0);
   // lua_setglobal(H, "monitor");
 
   // lua_pushcfunction(H, lua_getclients);
