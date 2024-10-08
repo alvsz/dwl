@@ -3546,16 +3546,16 @@ int lua_clientindex(lua_State *L) {
 
     return 1;
   } else if (strcmp(key, "isfloating") == 0) {
-    lua_pushinteger(L, lc->c->isfloating);
+    lua_pushboolean(L, lc->c->isfloating);
     return 1;
   } else if (strcmp(key, "isurgent") == 0) {
-    lua_pushinteger(L, lc->c->isurgent);
+    lua_pushboolean(L, lc->c->isurgent);
     return 1;
   } else if (strcmp(key, "isfullscreen") == 0) {
-    lua_pushinteger(L, lc->c->isfullscreen);
+    lua_pushboolean(L, lc->c->isfullscreen);
     return 1;
   } else if (strcmp(key, "nokill") == 0) {
-    lua_pushinteger(L, lc->c->nokill);
+    lua_pushboolean(L, lc->c->nokill);
     return 1;
   }
 
@@ -3726,9 +3726,6 @@ int lua_monitorindex(lua_State *L) {
     return 1;
   } else if (strcmp(key, "scale") == 0) {
     lua_pushnumber(L, lm->m->scale);
-    return 1;
-  } else if (strcmp(key, "tags") == 0) {
-    lua_pushnumber(L, lm->m->seltags);
     return 1;
   } else if (strcmp(key, "gaps") == 0) {
     lua_newtable(L);
