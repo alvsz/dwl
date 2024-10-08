@@ -3706,12 +3706,15 @@ int lua_monitorindex(lua_State *L) {
   } else if (strcmp(key, "clients") == 0) {
     lua_getclientsformonitor(L, lm);
     return 1;
-  } else if (strcmp(key, "tagset1") == 0) {
-    lua_pushinteger(L, lm->m->tagset[0]);
+  } else if (strcmp(key, "seltags") == 0) {
+    lua_pushinteger(L, lm->m->tagset[lm->m->seltags]);
     return 1;
-  } else if (strcmp(key, "tagset2") == 0) {
-    lua_pushinteger(L, lm->m->tagset[1]);
-    return 1;
+    // } else if (strcmp(key, "tagset1") == 0) {
+    //   lua_pushinteger(L, lm->m->tagset[0]);
+    //   return 1;
+    // } else if (strcmp(key, "tagset2") == 0) {
+    //   lua_pushinteger(L, lm->m->tagset[1]);
+    //   return 1;
   } else if (strcmp(key, "name") == 0) {
     lua_pushstring(L, lm->m->name);
     return 1;
