@@ -3574,7 +3574,7 @@ int lua_clientkill(lua_State *L) {
 int lua_clientvisibleon(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 2, "Monitor");
-  lua_pushinteger(L, VISIBLEON(lc->c, lm->m));
+  lua_pushboolean(L, VISIBLEON(lc->c, lm->m));
   return 1;
 }
 
