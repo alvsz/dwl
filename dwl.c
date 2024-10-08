@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/poll.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
@@ -2444,9 +2443,6 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 }
 
 void run(char *startup_cmd) {
-  int wayland_fd;
-  struct pollfd fds[1];
-
   /* Add a Unix socket to the Wayland display. */
   const char *socket = wl_display_add_socket_auto(dpy);
   if (!socket)
@@ -2505,26 +2501,7 @@ void run(char *startup_cmd) {
    * compositor. Starting the backend rigged up all of the necessary event
    * loop configuration to listen to libinput events, DRM events, generate
    * frame events at the refresh rate, and so on. */
-  // wl_display_run(dpy);
-
-  wayland_fd = wl_event_loop_get_fd(event_loop);
-
-  fds[0].fd = wayland_fd;
-  fds[0].events = POLLIN;
-
-  while (1) {
-    int ret = poll(fds, 1, 10);
-
-    if (ret > 0) {
-      if (fds[0].revents & POLLIN) {
-        wl_event_loop_dispatch(event_loop, 0);
-
-        wl_display_flush_clients(dpy);
-      }
-    }
-
-    printf("iteração\n");
-  }
+  wl_display_run(dpy);
 }
 
 void setcursor(struct wl_listener *listener, void *data) {
