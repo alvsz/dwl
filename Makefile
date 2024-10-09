@@ -16,6 +16,10 @@ PKGS      = wlroots-0.18 wayland-server xkbcommon libinput $(XLIBS)
 DWLCFLAGS = `$(PKG_CONFIG) --cflags $(PKGS)` $(DWLCPPFLAGS) $(DWLDEVCFLAGS) $(CFLAGS)
 LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` -lm -llua $(LIBS)
 
+ifneq ($(MODKEY),)
+MODKEYVAL = -DMODKEY=$(MODKEY)
+endif
+
 all: dwl
 dwl: dwl.o util.o
 	$(CC) dwl.o util.o $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
@@ -76,4 +80,4 @@ uninstall:
 
 .SUFFIXES: .c .o
 .c.o:
-	$(CC) $(CPPFLAGS) $(DWLCFLAGS) -o $@ -c $<
+	$(CC) $(CPPFLAGS) $(DWLCFLAGS) $(MODKEYVAL) -o $@ -c $<

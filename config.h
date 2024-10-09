@@ -95,7 +95,9 @@ static enum libinput_config_accel_profile accel_profile = LIBINPUT_CONFIG_ACCEL_
 static double accel_speed = 0.0;
 static enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TAP_MAP_LRM;
 
-#define MODKEY WLR_MODIFIER_ALT
+#ifndef MODKEY
+#define MODKEY WLR_MODIFIER_LOGO
+#endif
 
 #define TAGKEYS(KEY,SKEY,TAG) \
 	{ MODKEY,                    KEY,            view,            {.ui = 1 << TAG} }, \
