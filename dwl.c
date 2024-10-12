@@ -845,7 +845,6 @@ void checkidleinhibitor(struct wlr_surface *exclude) {
 }
 
 void cleanup(void) {
-  lua_close(H);
 #ifdef XWAYLAND
   wlr_xwayland_destroy(xwayland);
   xwayland = NULL;
@@ -868,6 +867,8 @@ void cleanup(void) {
   /* Destroy after the wayland display (when the monitors are already destroyed)
      to avoid destroying them with an invalid scene output. */
   wlr_scene_node_destroy(&scene->tree.node);
+
+  lua_close(H);
 }
 
 void cleanupmon(struct wl_listener *listener, void *data) {
