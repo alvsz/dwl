@@ -2992,12 +2992,16 @@ void togglefloating(const Arg *arg) {
   /* return if fullscreen */
   if (sel && !sel->isfullscreen)
     setfloating(sel, !sel->isfloating);
+
+  printstatus();
 }
 
 void togglefullscreen(const Arg *arg) {
   Client *sel = focustop(selmon);
   if (sel)
     setfullscreen(sel, !sel->isfullscreen);
+
+  printstatus();
 }
 
 void togglescratch(const Arg *arg) {
@@ -3008,22 +3012,21 @@ void togglescratch(const Arg *arg) {
   wl_list_for_each(c, &clients,
                    link) if (c->scratchkey == ((char **)arg->v)[0][0]) {
     found = 1;
-    break;
-  }
-
-  if (found) {
     c->tags = VISIBLEON(c, selmon) ? 0 : selmon->tagset[selmon->seltags];
 
     focusclient(c->tags == 0 ? focustop(selmon) : c, 1);
     arrange(selmon);
-  } else {
-    spawnscratch(arg);
   }
+
+  if (!found)
+    spawnscratch(arg);
 }
 
 void togglegaps(const Arg *arg) {
   enablegaps = !enablegaps;
   arrange(selmon);
+
+  printstatus();
 }
 
 void toggletag(const Arg *arg) {
