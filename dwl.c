@@ -3518,6 +3518,9 @@ int lua_clientindex(lua_State *L) {
 
     lua_pushstring(L, title);
     return 1;
+  } else if (strcmp(key, "focused") == 0) {
+    lua_pushboolean(L, lc->c == focustop(lc->c->mon));
+    return 1;
   } else if (strcmp(key, "tags") == 0) {
     lua_pushinteger(L, lc->c->tags);
     return 1;
