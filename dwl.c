@@ -3801,6 +3801,8 @@ void lua_openconfigfile(lua_State *L) {
   } else {
     fprintf(stderr, "O arquivo rc.lua não existe.\n");
   }
+
+  free(path);
 }
 
 void lua_reloadconfig(const Arg *arg) {
