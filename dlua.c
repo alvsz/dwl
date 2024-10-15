@@ -31,8 +31,8 @@ int lua_clientindex(lua_State *L) {
   } else if (strcmp(key, "tags") == 0) {
     lua_pushinteger(L, lc->c->tags);
     return 1;
-  } else if (strcmp(key, "type") == 0) {
-    lua_pushinteger(L, lc->c->type);
+  } else if (strcmp(key, "x11") == 0) {
+    lua_pushboolean(L, client_is_x11(lc->c));
     return 1;
   } else if (strcmp(key, "monitor") == 0) {
     lua_createmonitor(L, lc->c->mon);
