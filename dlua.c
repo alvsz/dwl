@@ -56,13 +56,13 @@ int lua_clientindex(lua_State *L) {
     lua_rawset(L, -3);
 
     return 1;
-  } else if (strcmp(key, "isfloating") == 0) {
+  } else if (strcmp(key, "floating") == 0) {
     lua_pushboolean(L, lc->c->isfloating);
     return 1;
-  } else if (strcmp(key, "isurgent") == 0) {
+  } else if (strcmp(key, "urgent") == 0) {
     lua_pushboolean(L, lc->c->isurgent);
     return 1;
-  } else if (strcmp(key, "isfullscreen") == 0) {
+  } else if (strcmp(key, "fullscreen") == 0) {
     lua_pushboolean(L, lc->c->isfullscreen);
     return 1;
   } else if (strcmp(key, "nokill") == 0) {
@@ -217,15 +217,12 @@ int lua_monitorindex(lua_State *L) {
   } else if (strcmp(key, "clients") == 0) {
     lua_getclientsformonitor(L, lm);
     return 1;
+  } else if (strcmp(key, "focused") == 0) {
+    lua_pushboolean(L, lm->m == selmon);
+    return 1;
   } else if (strcmp(key, "seltags") == 0) {
     lua_pushinteger(L, lm->m->tagset[lm->m->seltags]);
     return 1;
-    // } else if (strcmp(key, "tagset1") == 0) {
-    //   lua_pushinteger(L, lm->m->tagset[0]);
-    //   return 1;
-    // } else if (strcmp(key, "tagset2") == 0) {
-    //   lua_pushinteger(L, lm->m->tagset[1]);
-    //   return 1;
   } else if (strcmp(key, "name") == 0) {
     lua_pushstring(L, lm->m->name);
     return 1;
