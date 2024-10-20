@@ -38,6 +38,7 @@ static const Rule rules[] = {
 	{ "calibre-gui",                    NULL,                  1 << 2,     0,           0,       -1,       0 },
 	{ "org.pwmt.zathura",               NULL,                  1 << 2,     0,           0,       -1,       0 },
 	{ "evince",                         NULL,                  1 << 2,     0,           0,       -1,       0 },
+	{ "libreoffice",                    NULL,                  1 << 2,     0,           0,       -1,       0 },
                                                                                                
   { "org.gnome.Nautilus",             NULL,                  1 << 3,     0,           0,       -1,       0 },
   { "com.usebottles.bottles",         NULL,                  1 << 3,     0,           0,       -1,       0 },
