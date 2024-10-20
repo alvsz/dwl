@@ -1,3 +1,4 @@
+#include <stdint.h>
 void lua_autostart(lua_State *L) {
   if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {
     if (lua_pcall(L, 0, 0, 0))
@@ -67,6 +68,9 @@ int lua_clientindex(lua_State *L) {
     return 1;
   } else if (strcmp(key, "nokill") == 0) {
     lua_pushboolean(L, lc->c->nokill);
+    return 1;
+  } else if (strcmp(key, "address") == 0) {
+    lua_pushinteger(L, (uintptr_t)lc->c);
     return 1;
   }
 
@@ -259,6 +263,9 @@ int lua_monitorindex(lua_State *L) {
     return 1;
   } else if (strcmp(key, "y") == 0) {
     lua_pushnumber(L, lm->m->m.y);
+    return 1;
+  } else if (strcmp(key, "address") == 0) {
+    lua_pushinteger(L, (uintptr_t)lm->m);
     return 1;
   }
 
