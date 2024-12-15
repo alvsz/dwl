@@ -8,7 +8,7 @@ static const Key keys[] = {
     { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_L,            spawn,              SHCMD("loginctl lock-session") },
 
     /* -------- bar -------- */
-    { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("ags -t bar-0") },
+    { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("agsv1 -t bar-0") },
     // { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("eww open bar-wayland --toggle") },
     // { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_P,            spawn,              SHCMD("pkill eww; eww daemon") },
 
@@ -71,8 +71,8 @@ static const Key keys[] = {
     { MODKEY,                                            XKB_KEY_0,                  view,           {.ui = ~0} },
     { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_parenright,         tag,            {.ui = ~0} },
 
-    { MODKEY,                                            XKB_KEY_r,                  spawn,          SHCMD("ags -t dashboard") },
-    { MODKEY,                                            XKB_KEY_c,                  spawn,          SHCMD("ags -t calendar") },
+    { MODKEY,                                            XKB_KEY_r,                  spawn,          SHCMD("agsv1 -t dashboard") },
+    { MODKEY,                                            XKB_KEY_c,                  spawn,          SHCMD("agsv1 -t calendar") },
 
     { 0,                                                 XF86XK_AudioStop,           spawn,          SHCMD("midia stop") },
     { 0,                                                 XF86XK_AudioPrev,           spawn,          SHCMD("midia previous") },
