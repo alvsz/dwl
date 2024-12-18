@@ -21,13 +21,15 @@ MODKEYVAL = -DMODKEY=$(MODKEY)
 endif
 
 all: dwl
-dwl: dwl.o util.o
-	$(CC) dwl.o util.o $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
+dwl: dwl.o util.o dwl-ipc-protocol.o
+	$(CC) dwl.o util.o dwl-ipc-protocol.o $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
 dwl.o: dwl.c client.h config.h config.mk cursor-shape-v1-protocol.h \
 	pointer-constraints-unstable-v1-protocol.h wlr-layer-shell-unstable-v1-protocol.h \
-	wlr-output-power-management-unstable-v1-protocol.h xdg-shell-protocol.h
+	wlr-output-power-management-unstable-v1-protocol.h xdg-shell-protocol.h dwl-ipc-protocol.h
 dwl.o: env.c dlua.c
 util.o: util.c util.h
+dwlcmd: dwlcmd.c dwl-ipc-protocol.c dwl-ipc-client-protocol.h
+	$(CC) dwlcmd.c dwl-ipc-protocol.c $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -lwayland-client -o $@
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
 # protocols, which are specified in XML. wlroots requires you to rig these up
@@ -50,11 +52,21 @@ wlr-output-power-management-unstable-v1-protocol.h:
 xdg-shell-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
 		$(WAYLAND_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml $@
+dwl-ipc-protocol.c:
+	$(WAYLAND_SCANNER) private-code \
+		protocols/dwl-ipc.xml $@
+dwl-ipc-protocol.h:
+	$(WAYLAND_SCANNER) server-header \
+		protocols/dwl-ipc.xml $@
+dwl-ipc-client-protocol.h:
+	$(WAYLAND_SCANNER) client-header \
+		protocols/dwl-ipc.xml $@
+
 
 config.h:
 	cp config.def.h $@
 clean:
-	rm -f dwl *.o *-protocol.h
+	rm -f dwl dwlcmd *.o *-protocol.h
 
 dist: clean
 	mkdir -p dwl-$(VERSION)

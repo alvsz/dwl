@@ -481,6 +481,8 @@ void lua_setup(void) {
   lua_register(H, "get_monitors", lua_getmonitors);
 
   lua_openconfigfile(H);
+
+  luaK_ipc_init(H);
 }
 
 void lua_setupenv(lua_State *L) {

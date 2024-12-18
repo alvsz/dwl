@@ -453,6 +453,8 @@ static void lua_setscrollmethod(lua_State *L);
 static void lua_setup(void);
 static void lua_setupenv(lua_State *L);
 
+bool luaK_ipc_init(lua_State *L);
+
 /* variables */
 static const char broken[] = "broken";
 static pid_t child_pid = -1;
@@ -538,6 +540,7 @@ static xcb_atom_t netatom[NetLast];
 #include "env.c"
 
 #include "dlua.c"
+#include "ipc.c"
 
 struct Pertag {
   unsigned int curtag, prevtag;      /* current and previous tag */
