@@ -15,6 +15,8 @@
 
 #include "dwl-ipc-client-protocol.h"
 
+struct wl_display *display;
+
 static void command_done(void *data, struct dwl_command *UNUSED(dwl_command),
                          uint32_t error, const char *message) {
   int *exit_code = data;
@@ -57,34 +59,68 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = registry_global_remove,
 };
 
-int main(int argc, char **argv) {
-  if (argc < 2) {
-    fprintf(stderr, "Usage: kiwmic COMMAND\n");
-    exit(EXIT_FAILURE);
-  }
+static void run_command(struct dwl_ipc *ipc, const char *cmd, int *exit_code) {
+  struct dwl_command *command = dwl_ipc_eval(ipc, cmd);
+  dwl_command_add_listener(command, &command_listener, exit_code);
 
-  struct wl_display *display = wl_display_connect(NULL);
+  wl_display_roundtrip(display);
+}
+
+static void on_frame(void *data, struct dwl_ipc *ipc) {
+  const char *cmd;
+  int exit_code;
+
+  if (data == NULL)
+    printf("frame\n");
+  else {
+    cmd = (char *)data;
+    run_command(ipc, cmd, &exit_code);
+  }
+}
+
+static const struct dwl_ipc_listener listener = {.frame = on_frame};
+
+int main(int argc, char **argv) {
+  struct wl_registry *registry;
+  struct dwl_ipc *ipc;
+  int exit_code;
+
+  display = wl_display_connect(NULL);
   if (!display) {
     fprintf(stderr, "Failed to connect to display\n");
     exit(EXIT_FAILURE);
   }
 
-  struct wl_registry *registry = wl_display_get_registry(display);
-  struct dwl_ipc *ipc = NULL;
+  registry = wl_display_get_registry(display);
 
   wl_registry_add_listener(registry, &registry_listener, &ipc);
   wl_display_roundtrip(display);
 
   if (!ipc) {
-    fprintf(stderr, "Failed to bind to kiwmi_ipc\n");
+    fprintf(stderr, "Failed to bind to dwl_ipc\n");
     exit(EXIT_FAILURE);
   }
 
-  struct dwl_command *command = dwl_ipc_eval(ipc, argv[1]);
-  int exit_code;
-  dwl_command_add_listener(command, &command_listener, &exit_code);
-  wl_display_roundtrip(display);
-  wl_display_disconnect(display);
+  if (argc > 1 && strcmp(argv[1], "follow") == 0) {
+    printf("follow\n");
 
-  exit(exit_code);
+    dwl_ipc_add_listener(ipc, &listener, argc > 2 ? argv[2] : NULL);
+
+    wl_display_roundtrip(display);
+
+    while (wl_display_dispatch(display) != -1)
+      ;
+
+    wl_display_disconnect(display);
+  } else if (argc > 2 && strcmp(argv[1], "run") == 0) {
+    printf("run\n");
+
+    run_command(ipc, argv[2], &exit_code);
+
+    wl_display_disconnect(display);
+    exit(exit_code);
+  } else {
+    fprintf(stderr, "Usage: dwlcmd run|follow COMMAND\n");
+    exit(EXIT_FAILURE);
+  }
 }
