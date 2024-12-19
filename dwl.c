@@ -169,8 +169,6 @@ lua_State *H;
 /* attempt to encapsulate suck into one file */
 #include "client.h"
 
-#include "env.c"
-
 #include "dlua.c"
 #include "ipc.c"
 
@@ -1925,6 +1923,16 @@ void outputmgrtest(struct wl_listener *listener, void *data) {
   outputmgrapplyortest(config, 1);
 }
 
+static void parsecolor(const char *val, float color[4]) {
+  uint8_t r, g, b, a;
+  if (sscanf(val, "#%02hhx%02hhx%02hhx%02hhx", &r, &g, &b, &a) == 4) {
+    color[0] = (float)r / 0xFF;
+    color[1] = (float)g / 0xFF;
+    color[2] = (float)b / 0xFF;
+    color[3] = (float)a / 0xFF;
+  }
+}
+
 void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
                   uint32_t time) {
   struct timespec now;
@@ -3036,7 +3044,6 @@ int main(int argc, char *argv[]) {
   /* Wayland requires XDG_RUNTIME_DIR for creating its communications socket */
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
-  loadtheme();
   setup();
   lua_setup();
   run(startup_cmd);

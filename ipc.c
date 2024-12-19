@@ -110,7 +110,7 @@ static void ipc_server_bind(struct wl_client *client, void *data,
   wl_list_insert(&ipc_clients, &c->link);
 }
 
-bool luaK_ipc_init(lua_State *L) {
+bool lua_ipc_init(lua_State *L) {
   struct wl_global *ipc_global =
       wl_global_create(dpy, &dwl_ipc_interface, 1, L, ipc_server_bind);
 

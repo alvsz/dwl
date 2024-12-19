@@ -1,144 +1,18 @@
+#include <lua.h>
 #include <stdint.h>
+#include <stdlib.h>
 
-/* #include "client.h" */
 #include "dlua.h"
 #include "dwl.h"
+
+#include "dlua_client.h"
+#include "dlua_monitor.h"
 
 void lua_autostart(lua_State *L) {
   if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {
     if (lua_pcall(L, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
   }
-}
-
-int lua_clientindex(lua_State *L) {
-  const char *appid, *title;
-  LuaClient *lc;
-  const char *key;
-
-  lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
-  key = luaL_checkstring(L, 2);
-
-  if (strcmp(key, "app_id") == 0) {
-    if (!(appid = client_get_appid(lc->c)))
-      appid = broken;
-
-    lua_pushstring(L, appid);
-    return 1;
-  } else if (strcmp(key, "title") == 0) {
-    if (!(title = client_get_title(lc->c)))
-      title = broken;
-
-    lua_pushstring(L, title);
-    return 1;
-  } else if (strcmp(key, "focused") == 0) {
-    lua_pushboolean(L, lc->c == focustop(lc->c->mon));
-    return 1;
-  } else if (strcmp(key, "tags") == 0) {
-    lua_pushinteger(L, lc->c->tags);
-    return 1;
-  } else if (strcmp(key, "x11") == 0) {
-    lua_pushboolean(L, client_is_x11(lc->c));
-    return 1;
-  } else if (strcmp(key, "monitor") == 0) {
-    lua_createmonitor(L, lc->c->mon);
-    return 1;
-  } else if (strcmp(key, "geometry") == 0) {
-    lua_newtable(L);
-    lua_pushstring(L, "x");
-    lua_pushinteger(L, lc->c->geom.x);
-    lua_rawset(L, -3);
-
-    lua_pushstring(L, "y");
-    lua_pushinteger(L, lc->c->geom.y);
-    lua_rawset(L, -3);
-
-    lua_pushstring(L, "width");
-    lua_pushinteger(L, lc->c->geom.width);
-    lua_rawset(L, -3);
-
-    lua_pushstring(L, "height");
-    lua_pushinteger(L, lc->c->geom.height);
-    lua_rawset(L, -3);
-
-    return 1;
-  } else if (strcmp(key, "floating") == 0) {
-    lua_pushboolean(L, lc->c->isfloating);
-    return 1;
-  } else if (strcmp(key, "urgent") == 0) {
-    lua_pushboolean(L, lc->c->isurgent);
-    return 1;
-  } else if (strcmp(key, "fullscreen") == 0) {
-    lua_pushboolean(L, lc->c->isfullscreen);
-    return 1;
-  } else if (strcmp(key, "nokill") == 0) {
-    lua_pushboolean(L, lc->c->nokill);
-    return 1;
-  } else if (strcmp(key, "address") == 0) {
-    lua_pushinteger(L, (uintptr_t)lc->c);
-    return 1;
-  }
-
-  luaL_getmetatable(L, "Client");
-  lua_getfield(L, -1, key);
-  return 1;
-}
-
-int lua_clientkill(lua_State *L) {
-  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
-  if (lc->c && !lc->c->nokill)
-    client_send_close(lc->c);
-  return 0;
-}
-
-int lua_clientvisibleon(lua_State *L) {
-  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
-  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 2, "Monitor");
-  lua_pushboolean(L, VISIBLEON(lc->c, lm->m));
-  return 1;
-}
-
-int lua_createclient(lua_State *L, Client *c) {
-  LuaClient *lc = (LuaClient *)lua_newuserdata(L, sizeof(LuaClient));
-
-  luaL_getmetatable(L, "Client");
-  lua_setmetatable(L, -2);
-  lc->c = c;
-
-  return 1;
-}
-
-int lua_createmonitor(lua_State *L, Monitor *m) {
-  LuaMonitor *lm = (LuaMonitor *)lua_newuserdata(L, sizeof(LuaMonitor));
-
-  luaL_getmetatable(L, "Monitor");
-  lua_setmetatable(L, -2);
-  lm->m = m;
-
-  return 1;
-}
-
-int lua_getclients(lua_State *L) {
-  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
-  lua_getclientsformonitor(L, lm);
-  return 1;
-}
-
-int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm) {
-  Client *c;
-  int i = 1;
-
-  lua_newtable(L);
-
-  wl_list_for_each(c, &clients, link) {
-    if (c->mon == lm->m) {
-      lua_pushinteger(L, i);
-      lua_createclient(L, c);
-      lua_rawset(L, -3);
-      i++;
-    }
-  }
-  return 1;
 }
 
 int lua_getmonitors(lua_State *L) {
@@ -216,68 +90,55 @@ void lua_inputconfig(lua_State *L) {
   lua_setlefthanded(L);
 }
 
-int lua_monitorindex(lua_State *L) {
-  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
-  const char *key = luaL_checkstring(L, 2);
+static void lua_loadtheme(lua_State *L) {
+  const char *val;
+  unsigned int tmp;
 
-  if (strcmp(key, "layout") == 0) {
-    lua_pushstring(L, lm->m->ltsymbol);
-    return 1;
-  } else if (strcmp(key, "clients") == 0) {
-    lua_getclientsformonitor(L, lm);
-    return 1;
-  } else if (strcmp(key, "focused") == 0) {
-    lua_pushboolean(L, lm->m == selmon);
-    return 1;
-  } else if (strcmp(key, "seltags") == 0) {
-    lua_pushinteger(L, lm->m->tagset[lm->m->seltags]);
-    return 1;
-  } else if (strcmp(key, "name") == 0) {
-    lua_pushstring(L, lm->m->name);
-    return 1;
-  } else if (strcmp(key, "mfact") == 0) {
-    lua_pushnumber(L, lm->m->mfact);
-    return 1;
-  } else if (strcmp(key, "nmaster") == 0) {
-    lua_pushinteger(L, lm->m->nmaster);
-    return 1;
-  } else if (strcmp(key, "scale") == 0) {
-    lua_pushnumber(L, lm->m->scale);
-    return 1;
-  } else if (strcmp(key, "gaps") == 0) {
-    lua_newtable(L);
-    lua_pushstring(L, "ih");
-    lua_pushnumber(L, lm->m->gappih);
-    lua_rawset(L, -3);
+  if (!lua_getconfig(L, "theme", LUA_TTABLE))
+    return;
 
-    lua_pushstring(L, "iv");
-    lua_pushnumber(L, lm->m->gappiv);
-    lua_rawset(L, -3);
+  if (lua_getconfigfield(L, "root", LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
 
-    lua_pushstring(L, "oh");
-    lua_pushnumber(L, lm->m->gappoh);
-    lua_rawset(L, -3);
-
-    lua_pushstring(L, "ov");
-    lua_pushnumber(L, lm->m->gappov);
-    lua_rawset(L, -3);
-
-    return 1;
-  } else if (strcmp(key, "x") == 0) {
-    lua_pushnumber(L, lm->m->m.x);
-    return 1;
-  } else if (strcmp(key, "y") == 0) {
-    lua_pushnumber(L, lm->m->m.y);
-    return 1;
-  } else if (strcmp(key, "address") == 0) {
-    lua_pushinteger(L, (uintptr_t)lm->m);
-    return 1;
+    parsecolor(val, rootcolor);
   }
 
-  luaL_getmetatable(L, "Monitor");
-  lua_getfield(L, -1, key);
-  return 1;
-}
+  if (lua_getconfigfield(L, "normal", LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    parsecolor(val, bordercolor);
+  }
+
+  if (lua_getconfigfield(L, "focus", LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    parsecolor(val, focuscolor);
+  }
+
+  if (lua_getconfigfield(L, "urgent", LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    parsecolor(val, urgentcolor);
+  }
+
+  if (lua_getconfigfield(L, "float", LUA_TSTRING)) {
+    val = lua_tostring(L, -1);
+    lua_pop(L, 1);
+
+    parsecolor(val, floatcolor);
+  }
+
+  if (lua_getconfigfield(L, "border_width", LUA_TNUMBER)) {
+    tmp = lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    borderpx = tmp;
+  }
+};
 
 void lua_openconfigfile(lua_State *L) {
   char *config_dir, *path, *home;
@@ -487,7 +348,8 @@ void lua_setup(void) {
 
   lua_openconfigfile(H);
 
-  luaK_ipc_init(H);
+  lua_loadtheme(H);
+  lua_ipc_init(H);
 }
 
 void lua_setupenv(lua_State *L) {

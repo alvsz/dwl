@@ -15,6 +15,7 @@ static int lua_getconfigfield(lua_State *L, const char *key, int t);
 static int lua_getclients(lua_State *L);
 static int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm);
 static void lua_inputconfig(lua_State *L);
+static void lua_loadtheme(lua_State *L);
 static int lua_monitorindex(lua_State *L);
 static void lua_openconfigfile(lua_State *L);
 static void lua_reloadconfig(const Arg *arg);

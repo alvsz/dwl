@@ -89,6 +89,7 @@ static void outputmgrapply(struct wl_listener *listener, void *data);
 static void outputmgrapplyortest(struct wlr_output_configuration_v1 *config,
                                  int test);
 static void outputmgrtest(struct wl_listener *listener, void *data);
+static void parsecolor(const char *val, float color[4]);
 static void pointerfocus(Client *c, struct wlr_surface *surface, double sx,
                          double sy, uint32_t time);
 static void printstatus(void);
