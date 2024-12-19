@@ -102,8 +102,6 @@ int main(int argc, char **argv) {
   }
 
   if (argc > 1 && strcmp(argv[1], "follow") == 0) {
-    printf("follow\n");
-
     dwl_ipc_add_listener(ipc, &listener, argc > 2 ? argv[2] : NULL);
 
     wl_display_roundtrip(display);
@@ -113,8 +111,6 @@ int main(int argc, char **argv) {
 
     wl_display_disconnect(display);
   } else if (argc > 2 && strcmp(argv[1], "run") == 0) {
-    printf("run\n");
-
     run_command(ipc, argv[2], &exit_code);
 
     wl_display_disconnect(display);
