@@ -1,4 +1,6 @@
+#include "dlua.h"
 #include <stdint.h>
+
 void lua_autostart(lua_State *L) {
   if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {
     if (lua_pcall(L, 0, 0, 0))

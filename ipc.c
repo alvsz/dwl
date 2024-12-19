@@ -15,6 +15,7 @@
 #include <wayland-util.h>
 
 #include "dwl-ipc-protocol.h"
+#include "ipc.h"
 
 struct dwl_ipc_client {
   struct wl_list link;
