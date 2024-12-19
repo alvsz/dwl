@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#include "client.h"
+/* #include "client.h" */
 #include "dlua.h"
 #include "dwl.h"
 

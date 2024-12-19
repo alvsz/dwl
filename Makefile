@@ -20,7 +20,7 @@ ifneq ($(MODKEY),)
 MODKEYVAL = -DMODKEY=$(MODKEY)
 endif
 
-all: dwl
+all: dwl dwlcmd
 dwl: dwl.o util.o dwl-ipc-protocol.o
 	$(CC) dwl.o util.o dwl-ipc-protocol.o $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
 dwl.o: dwl.c client.h config.h config.mk cursor-shape-v1-protocol.h \
