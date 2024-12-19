@@ -1,5 +1,8 @@
-#include "dlua.h"
 #include <stdint.h>
+
+#include "client.h"
+#include "dlua.h"
+#include "dwl.h"
 
 void lua_autostart(lua_State *L) {
   if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {

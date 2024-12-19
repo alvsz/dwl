@@ -1,6 +1,7 @@
 #ifndef DLUA_H
 #define DLUA_H
 
+#include "types.h"
 #include <lauxlib.h>
 #include <lua.h>
 #include <lualib.h>
