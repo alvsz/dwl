@@ -454,6 +454,7 @@ static void lua_setup(void);
 static void lua_setupenv(lua_State *L);
 
 bool luaK_ipc_init(lua_State *L);
+void dwl_ipc_send_updates(void);
 
 /* variables */
 static const char broken[] = "broken";
@@ -2324,6 +2325,7 @@ void printstatus(void) {
     if (lua_pcall(H, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
   }
+  dwl_ipc_send_updates();
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -2774,6 +2776,7 @@ void setup(void) {
    */
   wl_list_init(&clients);
   wl_list_init(&fstack);
+  wl_list_init(&ipc_clients);
 
   xdg_shell = wlr_xdg_shell_create(dpy, 6);
   LISTEN_STATIC(&xdg_shell->events.new_toplevel, createnotify);

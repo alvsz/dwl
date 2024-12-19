@@ -5,6 +5,7 @@
  * You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <stdlib.h>
 #define UNUSED(x) UNUSED_##x __attribute__((__unused__))
 
 #include <lauxlib.h>
@@ -15,9 +16,19 @@
 
 #include "dwl-ipc-protocol.h"
 
+struct dwl_ipc_client {
+  struct wl_list link;
+  struct wl_resource *resource;
+  lua_State *L;
+};
+
+struct wl_list ipc_clients;
+
 static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
                      uint32_t id, const char *message) {
-  lua_State *L = wl_resource_get_user_data(resource);
+  struct dwl_ipc_client *c = wl_resource_get_user_data(resource);
+  lua_State *L = c->L;
+
   struct wl_resource *command_resource =
       wl_resource_create(client, &dwl_command_interface, 1, id);
 
@@ -57,7 +68,7 @@ static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
       return;
     }
 
-    dwl_command_send_done(command_resource, DWL_COMMAND_ERROR_FAILURE,
+    dwl_command_send_done(command_resource, DWL_COMMAND_ERROR_SUCCESS,
                           lua_tostring(L, -1));
   }
 
@@ -68,7 +79,10 @@ static const struct dwl_ipc_interface dwl_ipc_implementation = {
     .eval = ipc_eval,
 };
 
-static void dwl_server_resource_destroy(struct wl_resource *UNUSED(resource)) {
+static void dwl_server_resource_destroy(struct wl_resource *resource) {
+  struct dwl_ipc_client *c = wl_resource_get_user_data(resource);
+  wl_list_remove(&c->link);
+  free(c);
   // EMPTY
 }
 
@@ -76,15 +90,23 @@ static void ipc_server_bind(struct wl_client *client, void *data,
                             uint32_t version, uint32_t id) {
   lua_State *L = data;
 
-  struct wl_resource *resource =
-      wl_resource_create(client, &dwl_ipc_interface, version, id);
-  if (!resource) {
+  struct dwl_ipc_client *c = calloc(1, sizeof(struct dwl_ipc_client));
+
+  /* struct wl_resource *resource = */
+  c->resource = wl_resource_create(client, &dwl_ipc_interface, version, id);
+  if (!c->resource) {
     wl_client_post_no_memory(client);
     return;
   }
 
-  wl_resource_set_implementation(resource, &dwl_ipc_implementation, L,
+  c->L = L;
+
+  wl_resource_set_implementation(c->resource, &dwl_ipc_implementation, c,
                                  dwl_server_resource_destroy);
+
+  dwl_ipc_send_frame(c->resource);
+
+  wl_list_insert(&ipc_clients, &c->link);
 }
 
 bool luaK_ipc_init(lua_State *L) {
@@ -97,4 +119,13 @@ bool luaK_ipc_init(lua_State *L) {
   }
 
   return true;
+}
+
+void dwl_ipc_send_updates() {
+  struct dwl_ipc_client *c;
+
+  wl_list_for_each(c, &ipc_clients, link) {
+    if (c->resource)
+      dwl_ipc_send_frame(c->resource);
+  }
 }

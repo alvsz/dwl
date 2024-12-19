@@ -30,6 +30,10 @@ dwl.o: env.c dlua.c
 util.o: util.c util.h
 dwlcmd: dwlcmd.c dwl-ipc-protocol.c dwl-ipc-client-protocol.h
 	$(CC) dwlcmd.c dwl-ipc-protocol.c $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -lwayland-client -o $@
+dwlcmdteste: testedwlcmd.c dwl-ipc-protocol.c dwl-ipc-client-protocol.h
+	$(CC) testedwlcmd.c dwl-ipc-protocol.c $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -lwayland-client -o $@
+
+
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
 # protocols, which are specified in XML. wlroots requires you to rig these up
@@ -66,7 +70,7 @@ dwl-ipc-client-protocol.h:
 config.h:
 	cp config.def.h $@
 clean:
-	rm -f dwl dwlcmd *.o *-protocol.h
+	rm -f dwl dwlcmd *.o *-protocol.h *-protocol.c
 
 dist: clean
 	mkdir -p dwl-$(VERSION)

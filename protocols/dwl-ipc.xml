@@ -15,6 +15,12 @@
       <arg name="id" type="new_id" interface="dwl_command" />
       <arg name="command" type="string" />
     </request>
+
+    <event name="frame">
+      <description summary="The update sequence is done." />
+      <!--   Indicates that a sequence of status updates have finished and the client should redraw. -->
+      <!-- </description> -->
+    </event>
   </interface>
 
   <interface name="dwl_command" version="1">
