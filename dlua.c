@@ -79,6 +79,16 @@ int lua_getmonitors(lua_State *L) {
   return 1;
 }
 
+int lua_getselmon(lua_State *L) {
+  lua_createmonitor(L, selmon);
+  return 1;
+}
+
+int lua_getfocusedclient(lua_State *L) {
+  lua_createclient(L, focustop(selmon));
+  return 1;
+}
+
 void lua_inputconfig(lua_State *L) {
   if (!lua_getconfig(L, "input_config", LUA_TTABLE))
     return;
@@ -328,6 +338,8 @@ void lua_setscrollmethod(lua_State *L) {
 
 int lua_openmodule(lua_State *L) {
   luaL_Reg funcoes[] = {{"get_monitors", lua_getmonitors},
+                        {"get_focused_monitor", lua_getselmon},
+                        {"get_focused_client", lua_getfocusedclient},
                         /* {"minha_funcao", executar_funcao}, */
                         {NULL, NULL}};
 
