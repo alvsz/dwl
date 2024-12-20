@@ -5,6 +5,15 @@
 
 #include "dlua.h"
 #include "dwl.h"
+#include "util.h"
+
+#define SETGAPS(lm, oh, ov, ih, iv)                                            \
+  do {                                                                         \
+    lm->m->gappoh = MAX(oh, 0);                                                \
+    lm->m->gappov = MAX(ov, 0);                                                \
+    lm->m->gappih = MAX(ih, 0);                                                \
+    lm->m->gappiv = MAX(iv, 0);                                                \
+  } while (0)
 
 int lua_createmonitor(lua_State *L, Monitor *m) {
   LuaMonitor *lm = (LuaMonitor *)lua_newuserdata(L, sizeof(LuaMonitor));
@@ -100,4 +109,55 @@ int lua_monitorindex(lua_State *L) {
   luaL_getmetatable(L, "Monitor");
   lua_getfield(L, -1, key);
   return 1;
+}
+
+int lua_monitorsetgaps(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  int oh = luaL_checkinteger(L, 2);
+  int ov = luaL_checkinteger(L, 3);
+  int ih = luaL_checkinteger(L, 4);
+  int iv = luaL_checkinteger(L, 5);
+
+  SETGAPS(lm, oh, ov, ih, iv);
+  arrange(lm->m);
+  return 0;
+}
+
+int lua_monitorsetgapsdefault(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+
+  SETGAPS(lm, gappoh, gappov, gappih, gappiv);
+  arrange(lm->m);
+  return 0;
+}
+
+int lua_monitorsetmfact(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  float mfact = luaL_checknumber(L, 2);
+
+  if (mfact < 0.1 || mfact > 0.9)
+    return 0;
+
+  lm->m->mfact = lm->m->pertag->mfacts[lm->m->pertag->curtag] = mfact;
+  arrange(lm->m);
+  return 0;
+}
+
+int lua_monitorsetnmaster(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  int n = luaL_checkinteger(L, 2);
+
+  lm->m->nmaster = lm->m->pertag->nmasters[lm->m->pertag->curtag] = MAX(n, 0);
+  arrange(lm->m);
+  return 0;
+}
+
+int lua_monitortogglegaps(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+
+  enablegaps = !enablegaps;
+  arrange(lm->m);
+
+  printstatus();
+  return 0;
 }

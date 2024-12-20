@@ -1,9 +1,11 @@
+#include <libinput.h>
 #include <lua.h>
 #include <stdint.h>
 #include <stdlib.h>
 
 #include "dlua.h"
 #include "dlua_client.h"
+#include "dlua_monitor.h"
 #include "dwl.h"
 
 #include "dlua_client.c"
@@ -29,14 +31,6 @@ int lua_getconfig(lua_State *L, const char *key, int t) {
     if (lua_getconfigfield(L, key, t))
       return 1;
 
-  /* lua_getglobal(L, "dwl_cfg"); */
-
-  /* if (!lua_istable(L, -1)) { */
-  /*   fprintf(stderr, "dwl_cfg não é uma tabela\n"); */
-  /*   lua_pop(L, 1); */
-  /*   return 0; */
-  /* } */
-
   return 0;
 }
 
@@ -44,8 +38,6 @@ int lua_getconfigfield(lua_State *L, const char *key, int t) {
   int type;
 
   lua_getfield(L, -1, key);
-  /* lua_pushstring(L, key); */
-  /* lua_gettable(L, -2); */
 
   if (lua_isnil(L, -1)) {
     fprintf(stderr, "não existe campo %s\n", key);
@@ -368,8 +360,14 @@ void lua_setup(void) {
       {"visible_on", lua_clientvisibleon},
       {NULL, NULL}};
 
-  const luaL_Reg monitor_metatable[] = {{"get_clients", lua_getclients},
-                                        {NULL, NULL}};
+  const luaL_Reg monitor_metatable[] = {
+      {"get_clients", lua_getclients},
+      {"set_gaps", lua_monitorsetgaps},
+      {"set_default_gaps", lua_monitorsetgapsdefault},
+      {"set_mfact", lua_monitorsetmfact},
+      {"set_nmaster", lua_monitorsetnmaster},
+      {"toggle_gaps", lua_monitortogglegaps},
+      {NULL, NULL}};
 
   H = luaL_newstate();
   luaL_openlibs(H);

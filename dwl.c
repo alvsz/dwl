@@ -73,22 +73,6 @@
 
 #include "util.h"
 
-/* macros */
-#define MAX(A, B) ((A) > (B) ? (A) : (B))
-#define MIN(A, B) ((A) < (B) ? (A) : (B))
-#define CLEANMASK(mask) (mask & ~WLR_MODIFIER_CAPS)
-#define VISIBLEON(C, M)                                                        \
-  ((M) && (C)->mon == (M) && ((C)->tags & (M)->tagset[(M)->seltags]))
-#define LENGTH(X) (sizeof X / sizeof X[0])
-#define END(A) ((A) + LENGTH(A))
-#define TAGMASK ((1u << TAGCOUNT) - 1)
-#define LISTEN(E, L, H) wl_signal_add((E), ((L)->notify = (H), (L)))
-#define LISTEN_STATIC(E, H)                                                    \
-  do {                                                                         \
-    static struct wl_listener _l = {.notify = (H)};                            \
-    wl_signal_add((E), &_l);                                                   \
-  } while (0)
-
 #include "types.h"
 
 /* function declarations */
@@ -169,9 +153,6 @@ lua_State *H;
 /* attempt to encapsulate suck into one file */
 #include "client.h"
 
-#include "dlua.c"
-#include "ipc.c"
-
 struct Pertag {
   unsigned int curtag, prevtag;      /* current and previous tag */
   int nmasters[TAGCOUNT + 1];        /* number of windows in master area */
@@ -180,6 +161,9 @@ struct Pertag {
   const Layout
       *ltidxs[TAGCOUNT + 1][2]; /* matrix of tags and layouts indexes  */
 };
+
+#include "dlua.c"
+#include "ipc.c"
 
 /* function implementations */
 void applybounds(Client *c, struct wlr_box *bbox) {

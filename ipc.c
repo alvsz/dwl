@@ -6,7 +6,6 @@
  */
 
 #include <stdlib.h>
-#define UNUSED(x) UNUSED_##x __attribute__((__unused__))
 
 #include <lauxlib.h>
 #include <lua.h>
@@ -16,6 +15,7 @@
 
 #include "dwl-ipc-protocol.h"
 #include "ipc.h"
+#include "util.h"
 
 struct dwl_ipc_client {
   struct wl_list link;
