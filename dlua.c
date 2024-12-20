@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "dlua.h"
+#include "dlua_client.h"
 #include "dwl.h"
 
 #include "dlua_client.c"
@@ -335,9 +336,15 @@ int lua_openmodule(lua_State *L) {
 }
 
 void lua_setup(void) {
-  const luaL_Reg client_metatable[] = {{"visibleon", lua_clientvisibleon},
-                                       {"kill", lua_clientkill},
-                                       {NULL, NULL}};
+  const luaL_Reg client_metatable[] = {
+      {"kill", lua_clientkill},
+      {"resize", lua_clientresize},
+      {"set_tags", lua_clientsettags},
+      {"set_mon", lua_clientsetmon},
+      {"toggle_floating", lua_clienttogglefloating},
+      {"toggle_in_scratch", lua_clienttoggleinscratch},
+      {"visible_on", lua_clientvisibleon},
+      {NULL, NULL}};
 
   const luaL_Reg monitor_metatable[] = {{"get_clients", lua_getclients},
                                         {NULL, NULL}};

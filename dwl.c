@@ -2651,6 +2651,17 @@ void togglefullscreen(const Arg *arg) {
   printstatus();
 }
 
+void toggleinscratch(const Arg *arg) {
+  Client *c = focustop(selmon);
+  if (!c)
+    return;
+
+  if (c->scratchkey != 0)
+    c->scratchkey = 0;
+  else
+    c->scratchkey = ((char **)arg->v)[0][0];
+}
+
 void togglescratch(const Arg *arg) {
   Client *c;
   unsigned int found = 0;

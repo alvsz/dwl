@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "dlua.h"
+#include "dlua_client.h"
 #include "dwl.h"
 
 int lua_clientindex(lua_State *L) {
@@ -83,6 +84,64 @@ int lua_clientkill(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   if (lc->c && !lc->c->nokill)
     client_send_close(lc->c);
+  return 0;
+}
+
+int lua_clientresize(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  int x = luaL_checkinteger(L, 2);
+  int y = luaL_checkinteger(L, 3);
+  int w = luaL_checkinteger(L, 4);
+  int h = luaL_checkinteger(L, 5);
+
+  resize(lc->c, (struct wlr_box){.x = x, .y = y, .width = w, .height = h}, 0);
+  return 0;
+}
+
+int lua_clientsettags(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  uint32_t tag = (uint32_t)luaL_checkinteger(L, 2);
+
+  if ((tag & TAGMASK) == 0)
+    return 0;
+
+  lc->c->tags = tag & TAGMASK;
+  focusclient(focustop(selmon), 1);
+  arrange(selmon);
+
+  printstatus();
+  return 0;
+}
+
+int lua_clientsetmon(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 2, "Monitor");
+
+  setmon(lc->c, lm->m, 0);
+  return 0;
+}
+
+int lua_clienttogglefloating(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+
+  if (lc->c && !lc->c->isfullscreen)
+    setfloating(lc->c, !lc->c->isfloating);
+
+  lua_pushboolean(L, lc->c->isfloating);
+  printstatus();
+  return 1;
+}
+
+int lua_clienttoggleinscratch(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  const char *key = luaL_checkstring(L, 2);
+
+  if (lc->c->scratchkey != 0)
+    lc->c->scratchkey = 0;
+  else
+    lc->c->scratchkey = key[0];
+
+  printstatus();
   return 0;
 }
 

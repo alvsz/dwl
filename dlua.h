@@ -7,8 +7,6 @@
 #include <lualib.h>
 
 static void lua_autostart(lua_State *L);
-static int lua_clientindex(lua_State *L);
-static int lua_createclient(lua_State *L, Client *c);
 static int lua_createmonitor(lua_State *L, Monitor *m);
 static int lua_getconfig(lua_State *L, const char *key, int t);
 static int lua_getconfigfield(lua_State *L, const char *key, int t);

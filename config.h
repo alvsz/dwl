@@ -120,19 +120,7 @@ static const char *scratchcalc[] = { "c", "sh", "-c", "$CALCULATOR", NULL };
 
 #define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT,XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
 
-void toggleinscratch(const Arg *arg) {
-  Client *c = focustop(selmon);
-  if (!c)
-    return;
-
-  if (c->scratchkey != 0)
-    c->scratchkey = 0;
-  else 
-    c->scratchkey = ((char **)arg->v)[0][0];
-}
-
 #include "keys.h"
-
 
 static const Button buttons[] = {
 	{ MODKEY, BTN_LEFT,   moveresize,     {.ui = CurMove} },
