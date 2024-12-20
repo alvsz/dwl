@@ -29,11 +29,12 @@ static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
                      uint32_t id, const char *message) {
   struct dwl_ipc_client *c = wl_resource_get_user_data(resource);
   lua_State *L = c->L;
+  int top;
 
   struct wl_resource *command_resource =
       wl_resource_create(client, &dwl_command_interface, 1, id);
 
-  int top = lua_gettop(L);
+  top = lua_gettop(L);
 
   lua_pushboolean(L, true);
   lua_setglobal(L, "FROM_KIWMIC");

@@ -19,7 +19,8 @@ static void lua_inputconfig(lua_State *L);
 static void lua_loadtheme(lua_State *L);
 static int lua_monitorindex(lua_State *L);
 static void lua_openconfigfile(lua_State *L);
-static void lua_reloadconfig(const Arg *arg);
+static int lua_reloadconfig(lua_State *L);
+static int lua_reloadtheme(lua_State *L);
 static void lua_setaccelprofile(lua_State *L);
 static void lua_setaccelspeed(lua_State *L);
 static void lua_setclickmethod(lua_State *L);
@@ -32,5 +33,6 @@ static void lua_settapanddrag(lua_State *L);
 static void lua_setscrollmethod(lua_State *L);
 static void lua_setup(void);
 static void lua_setupenv(lua_State *L);
+static int lua_quit(lua_State *L);
 
 #endif

@@ -153,7 +153,7 @@ static void lua_loadtheme(lua_State *L) {
 
     borderpx = tmp;
   }
-};
+}
 
 void lua_openconfigfile(lua_State *L) {
   char *config_dir, *path, *home;
@@ -200,13 +200,21 @@ void lua_openconfigfile(lua_State *L) {
   free(path);
 }
 
-void lua_reloadconfig(const Arg *arg) {
-  lua_openconfigfile(H);
+int lua_reloadconfig(lua_State *L) {
+  lua_openconfigfile(L);
 
-  if (lua_getconfig(H, "reload", LUA_TFUNCTION)) {
-    if (lua_pcall(H, 0, 0, 0))
-      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
+  if (lua_getconfig(L, "reload", LUA_TFUNCTION)) {
+    if (lua_pcall(L, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
   }
+
+  return 0;
+}
+
+int lua_reloadtheme(lua_State *L) {
+  lua_reloadconfig(L);
+  lua_loadtheme(L);
+  return 0;
 }
 
 void lua_setaccelprofile(lua_State *L) {
@@ -340,11 +348,13 @@ int lua_openmodule(lua_State *L) {
   luaL_Reg funcoes[] = {{"get_monitors", lua_getmonitors},
                         {"get_focused_monitor", lua_getselmon},
                         {"get_focused_client", lua_getfocusedclient},
-                        /* {"minha_funcao", executar_funcao}, */
+                        {"reload_config", lua_reloadconfig},
+                        {"reload_theme", lua_reloadtheme},
+                        {"quit", lua_quit},
                         {NULL, NULL}};
 
-  luaL_newlib(L, funcoes); // Cria uma nova tabela Lua com as funções
-  return 1;                // Retorna a tabela contendo as funções do módulo
+  luaL_newlib(L, funcoes);
+  return 1;
 }
 
 void lua_setup(void) {
@@ -401,4 +411,9 @@ void lua_setupenv(lua_State *L) {
       lua_pop(L, 1);
     }
   }
+}
+
+int lua_quit(lua_State *L) {
+  quit(NULL);
+  return 0;
 }

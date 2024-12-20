@@ -14,7 +14,7 @@ static const Key keys[] = {
 
     { MODKEY,                                            XKB_KEY_q,            killclient,         {0} },
     { MODKEY | WLR_MODIFIER_SHIFT | WLR_MODIFIER_CTRL,   XKB_KEY_Q,            quit,               {0} },
-    { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_Q,            lua_reloadconfig,   {0} },
+    // { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_Q,            lua_reloadconfig,   {0} },
 
     /* -------- layouts -------- */
     { MODKEY,                                            XKB_KEY_u,            setlayout,          {.v = &layouts[0]} },
