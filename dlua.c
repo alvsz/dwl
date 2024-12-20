@@ -16,21 +16,6 @@ void lua_autostart(lua_State *L) {
   }
 }
 
-int lua_getmonitors(lua_State *L) {
-  Monitor *m;
-  int i = 1;
-
-  lua_newtable(L);
-
-  wl_list_for_each(m, &mons, link) {
-    lua_pushinteger(L, i);
-    lua_createmonitor(L, m);
-    lua_rawset(L, -3);
-    i++;
-  }
-  return 1;
-}
-
 int lua_getconfig(lua_State *L, const char *key, int t) {
   lua_getglobal(L, "dwl");
 
@@ -76,6 +61,21 @@ int lua_getconfigfield(lua_State *L, const char *key, int t) {
     return 0;
   }
 
+  return 1;
+}
+
+int lua_getmonitors(lua_State *L) {
+  Monitor *m;
+  int i = 1;
+
+  lua_newtable(L);
+
+  wl_list_for_each(m, &mons, link) {
+    lua_pushinteger(L, i);
+    lua_createmonitor(L, m);
+    lua_rawset(L, -3);
+    i++;
+  }
   return 1;
 }
 
