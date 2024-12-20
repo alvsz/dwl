@@ -31,22 +31,25 @@ int lua_getmonitors(lua_State *L) {
 }
 
 int lua_getconfig(lua_State *L, const char *key, int t) {
-  lua_getglobal(L, "dwl_cfg");
+  lua_getglobal(L, "dwl");
 
   if (lua_isnil(L, -1)) {
-    fprintf(stderr, "não tem variável dwl_cfg\n");
+    fprintf(stderr, "módulo não encontrado???\n");
     lua_pop(L, 1);
     return 0;
   }
 
-  if (!lua_istable(L, -1)) {
-    fprintf(stderr, "dwl_cfg não é uma tabela\n");
-    lua_pop(L, 1);
-    return 0;
-  }
+  if (lua_getconfigfield(L, "cfg", LUA_TTABLE))
+    if (lua_getconfigfield(L, key, t))
+      return 1;
 
-  if (lua_getconfigfield(L, key, t))
-    return 1;
+  /* lua_getglobal(L, "dwl_cfg"); */
+
+  /* if (!lua_istable(L, -1)) { */
+  /*   fprintf(stderr, "dwl_cfg não é uma tabela\n"); */
+  /*   lua_pop(L, 1); */
+  /*   return 0; */
+  /* } */
 
   return 0;
 }
@@ -54,8 +57,9 @@ int lua_getconfig(lua_State *L, const char *key, int t) {
 int lua_getconfigfield(lua_State *L, const char *key, int t) {
   int type;
 
-  lua_pushstring(L, key);
-  lua_gettable(L, -2);
+  lua_getfield(L, -1, key);
+  /* lua_pushstring(L, key); */
+  /* lua_gettable(L, -2); */
 
   if (lua_isnil(L, -1)) {
     fprintf(stderr, "não existe campo %s\n", key);
@@ -321,6 +325,15 @@ void lua_setscrollmethod(lua_State *L) {
   }
 }
 
+int lua_openmodule(lua_State *L) {
+  luaL_Reg funcoes[] = {{"get_monitors", lua_getmonitors},
+                        /* {"minha_funcao", executar_funcao}, */
+                        {NULL, NULL}};
+
+  luaL_newlib(L, funcoes); // Cria uma nova tabela Lua com as funções
+  return 1;                // Retorna a tabela contendo as funções do módulo
+}
+
 void lua_setup(void) {
   const luaL_Reg client_metatable[] = {{"visibleon", lua_clientvisibleon},
                                        {"kill", lua_clientkill},
@@ -334,6 +347,9 @@ void lua_setup(void) {
 
   fprintf(stderr, "lua criado\n");
 
+  luaL_requiref(H, "dwl", lua_openmodule, 1);
+  lua_setglobal(H, "dwl");
+
   luaL_newmetatable(H, "Client");
   lua_pushcfunction(H, lua_clientindex);
   lua_setfield(H, -2, "__index");
@@ -343,8 +359,6 @@ void lua_setup(void) {
   lua_pushcfunction(H, lua_monitorindex);
   lua_setfield(H, -2, "__index");
   luaL_setfuncs(H, monitor_metatable, 0);
-
-  lua_register(H, "get_monitors", lua_getmonitors);
 
   lua_openconfigfile(H);
 
