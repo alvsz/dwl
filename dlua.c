@@ -365,8 +365,10 @@ void lua_setup(void) {
       {"set_gaps", lua_monitorsetgaps},
       {"set_default_gaps", lua_monitorsetgapsdefault},
       {"set_mfact", lua_monitorsetmfact},
+      {"set_tags", lua_monitorsettags},
       {"set_nmaster", lua_monitorsetnmaster},
       {"toggle_gaps", lua_monitortogglegaps},
+      {"toggle_tags", lua_monitortoggletags},
       {NULL, NULL}};
 
   H = luaL_newstate();
@@ -383,9 +385,13 @@ void lua_setup(void) {
   luaL_setfuncs(H, client_metatable, 0);
 
   luaL_newmetatable(H, "Monitor");
+
   lua_pushcfunction(H, lua_monitorindex);
   lua_setfield(H, -2, "__index");
   luaL_setfuncs(H, monitor_metatable, 0);
+
+  lua_pushcfunction(H, lua_monitornewindex);
+  lua_setfield(H, -2, "__newindex");
 
   lua_openconfigfile(H);
 

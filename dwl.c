@@ -2683,38 +2683,37 @@ void toggletag(const Arg *arg) {
   printstatus();
 }
 
-void toggleview(const Arg *arg) {
+void toggleview(const Arg *arg) { toggleviewmonitor(selmon, arg); }
+
+void toggleviewmonitor(Monitor *m, const Arg *arg) {
   uint32_t newtagset;
   size_t i;
-  if (!(newtagset =
-            selmon ? selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK) : 0))
+  if (!(newtagset = m ? m->tagset[m->seltags] ^ (arg->ui & TAGMASK) : 0))
     return;
 
   if (newtagset == (uint32_t)~0) {
-    selmon->pertag->prevtag = selmon->pertag->curtag;
-    selmon->pertag->curtag = 0;
+    m->pertag->prevtag = m->pertag->curtag;
+    m->pertag->curtag = 0;
   }
 
   /* test if the user did not select the same tag */
-  if (!(newtagset & 1 << (selmon->pertag->curtag - 1))) {
-    selmon->pertag->prevtag = selmon->pertag->curtag;
+  if (!(newtagset & 1 << (m->pertag->curtag - 1))) {
+    m->pertag->prevtag = m->pertag->curtag;
     for (i = 0; !(newtagset & 1 << i); i++)
       ;
-    selmon->pertag->curtag = i + 1;
+    m->pertag->curtag = i + 1;
   }
 
   /* apply settings for this view */
-  selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-  selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
-  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-  selmon->lt[selmon->sellt] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-  selmon->lt[selmon->sellt ^ 1] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt ^ 1];
+  m->nmaster = m->pertag->nmasters[m->pertag->curtag];
+  m->mfact = m->pertag->mfacts[m->pertag->curtag];
+  m->sellt = m->pertag->sellts[m->pertag->curtag];
+  m->lt[m->sellt] = m->pertag->ltidxs[m->pertag->curtag][m->sellt];
+  m->lt[m->sellt ^ 1] = m->pertag->ltidxs[m->pertag->curtag][m->sellt ^ 1];
 
-  selmon->tagset[selmon->seltags] = newtagset;
-  focusclient(focustop(selmon), 1);
-  arrange(selmon);
+  m->tagset[m->seltags] = newtagset;
+  focusclient(focustop(m), 1);
+  arrange(m);
   printstatus();
 }
 
@@ -2888,39 +2887,40 @@ void urgent(struct wl_listener *listener, void *data) {
     client_set_border_color(c, urgentcolor);
 }
 
-void view(const Arg *arg) {
+void view(const Arg *arg) { viewmonitor(selmon, arg); }
+
+void viewmonitor(Monitor *m, const Arg *arg) {
   size_t i, tmptag;
 
-  if (!selmon || (arg->ui & TAGMASK) == selmon->tagset[selmon->seltags])
+  if (!m || (arg->ui & TAGMASK) == m->tagset[m->seltags])
     return;
-  selmon->seltags ^= 1; /* toggle sel tagset */
+  m->seltags ^= 1; /* toggle sel tagset */
   if (arg->ui & ~0) {
-    selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
-    selmon->pertag->prevtag = selmon->pertag->curtag;
+    m->tagset[m->seltags] = arg->ui & TAGMASK;
+    m->pertag->prevtag = m->pertag->curtag;
 
     if (arg->ui == TAGMASK)
-      selmon->pertag->curtag = 0;
+      m->pertag->curtag = 0;
     else {
       for (i = 0; !(arg->ui & 1 << i); i++)
         ;
-      selmon->pertag->curtag = i + 1;
+      m->pertag->curtag = i + 1;
     }
   } else {
-    tmptag = selmon->pertag->prevtag;
-    selmon->pertag->prevtag = selmon->pertag->curtag;
-    selmon->pertag->curtag = tmptag;
+    tmptag = m->pertag->prevtag;
+    m->pertag->prevtag = m->pertag->curtag;
+    m->pertag->curtag = tmptag;
   }
 
-  selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-  selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
-  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-  selmon->lt[selmon->sellt] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-  selmon->lt[selmon->sellt ^ 1] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt ^ 1];
+  m->nmaster = m->pertag->nmasters[m->pertag->curtag];
+  m->mfact = m->pertag->mfacts[m->pertag->curtag];
+  m->sellt = m->pertag->sellts[m->pertag->curtag];
+  m->lt[m->sellt] = m->pertag->ltidxs[m->pertag->curtag][m->sellt];
+  m->lt[m->sellt ^ 1] = m->pertag->ltidxs[m->pertag->curtag][m->sellt ^ 1];
 
-  focusclient(focustop(selmon), 1);
-  arrange(selmon);
+  if (m == selmon)
+    focusclient(focustop(m), 1);
+  arrange(m);
   printstatus();
 }
 

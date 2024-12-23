@@ -111,6 +111,31 @@ int lua_monitorindex(lua_State *L) {
   return 1;
 }
 
+int lua_monitornewindex(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  const char *key = luaL_checkstring(L, 2);
+  unsigned int i;
+  float n;
+
+  if (strcmp(key, "seltags") == 0) {
+    i = luaL_checkinteger(L, 3);
+    viewmonitor(lm->m, &(const Arg){.ui = i});
+    return 0;
+  } else if (strcmp(key, "mfact") == 0) {
+    n = luaL_checknumber(L, 3);
+    lm->m->mfact = lm->m->pertag->mfacts[lm->m->pertag->curtag] = n;
+    arrange(lm->m);
+    return 0;
+  } else if (strcmp(key, "nmaster") == 0) {
+    i = luaL_checknumber(L, 3);
+    lm->m->nmaster = lm->m->pertag->nmasters[lm->m->pertag->curtag] = MAX(i, 0);
+    arrange(lm->m);
+    return 0;
+  }
+
+  return 0;
+}
+
 int lua_monitorsetgaps(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
   int oh = luaL_checkinteger(L, 2);
@@ -143,6 +168,14 @@ int lua_monitorsetmfact(lua_State *L) {
   return 0;
 }
 
+int lua_monitorsettags(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  unsigned int n = luaL_checkinteger(L, 2);
+  viewmonitor(lm->m, &(const Arg){.ui = n});
+  arrange(lm->m);
+  return 0;
+}
+
 int lua_monitorsetnmaster(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
   int n = luaL_checkinteger(L, 2);
@@ -161,3 +194,31 @@ int lua_monitortogglegaps(lua_State *L) {
   printstatus();
   return 0;
 }
+
+int lua_monitortoggletags(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  unsigned int n = luaL_checkinteger(L, 2);
+  toggleviewmonitor(lm->m, &(const Arg){.ui = n});
+  arrange(lm->m);
+  return 0;
+}
+
+/* arrange: */
+/* if (lua_getconfig(H, "layouts", LUA_TTABLE)) { */
+/*   lua_pushnil(L); */
+/**/
+/*   while (lua_next(H, -2) != 0) { */
+/*     if (lua_isstring(H, -1) && lua_isfunction(H, -2)) { */
+/*       symbol = lua_tostring(H, -2); */
+/*       if (strcmp(symbol, m->ltsymbol) == 0) { */
+/*         lua_createmonitor(H, m); */
+/**/
+/*         if (lua_pcall(L, 1, 0, 0) != LUA_OK) { */
+/*           printf("Erro ao chamar a função Lua: %s\n", lua_tostring(L, -1));
+ */
+/*         } */
+/*       } */
+/*     } */
+/*     lua_pop(L, 1); */
+/*   } */
+/* } */
