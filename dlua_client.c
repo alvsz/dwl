@@ -8,12 +8,10 @@
 #include "dwl.h"
 
 int lua_clientindex(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  const char *key = luaL_checkstring(L, 2);
   const char *appid, *title;
-  LuaClient *lc;
-  const char *key;
-
-  lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
-  key = luaL_checkstring(L, 2);
+  char str[2];
 
   if (strcmp(key, "app_id") == 0) {
     if (!(appid = client_get_appid(lc->c)))
@@ -70,6 +68,11 @@ int lua_clientindex(lua_State *L) {
   } else if (strcmp(key, "nokill") == 0) {
     lua_pushboolean(L, lc->c->nokill);
     return 1;
+  } else if (strcmp(key, "scratchkey") == 0) {
+    str[0] = lc->c->scratchkey;
+    str[1] = '\0';
+    lua_pushstring(L, str);
+    return 1;
   } else if (strcmp(key, "address") == 0) {
     lua_pushinteger(L, (uintptr_t)lc->c);
     return 1;
@@ -78,6 +81,51 @@ int lua_clientindex(lua_State *L) {
   luaL_getmetatable(L, "Client");
   lua_getfield(L, -1, key);
   return 1;
+}
+
+int lua_clientnewindex(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  const char *key = luaL_checkstring(L, 2);
+  const char *value;
+  LuaMonitor *lm;
+  unsigned int i;
+
+  if (strcmp(key, "tags") == 0) {
+    i = luaL_checkinteger(L, 3);
+
+    if ((i & TAGMASK) == 0)
+      return 0;
+
+    lc->c->tags = i & TAGMASK;
+    focusclient(focustop(selmon), 1);
+    arrange(selmon);
+
+    printstatus();
+    return 0;
+  } else if (strcmp(key, "monitor") == 0) {
+    lm = (LuaMonitor *)luaL_checkudata(L, 3, "Monitor");
+    setmon(lc->c, lm->m, 0);
+
+    return 0;
+  } else if (strcmp(key, "floating") == 0) {
+    i = luaL_checkinteger(L, 3);
+    if (lc->c && !lc->c->isfullscreen)
+      setfloating(lc->c, i);
+
+    return 0;
+  } else if (strcmp(key, "nokill") == 0) {
+    i = luaL_checkinteger(L, 3);
+    lc->c->nokill = i;
+
+    return 0;
+  } else if (strcmp(key, "scratchkey") == 0) {
+    value = luaL_checkstring(L, 3);
+    lc->c->scratchkey = value[0];
+
+    return 0;
+  }
+
+  return 0;
 }
 
 int lua_clientkill(lua_State *L) {

@@ -7,6 +7,7 @@
 #include <lualib.h>
 
 static int lua_clientindex(lua_State *L);
+static int lua_clientnewindex(lua_State *L);
 static int lua_clientkill(lua_State *L);
 static int lua_clientresize(lua_State *L);
 static int lua_clientsettags(lua_State *L);

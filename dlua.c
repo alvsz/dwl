@@ -380,9 +380,13 @@ void lua_setup(void) {
   lua_setglobal(H, "dwl");
 
   luaL_newmetatable(H, "Client");
+
   lua_pushcfunction(H, lua_clientindex);
   lua_setfield(H, -2, "__index");
   luaL_setfuncs(H, client_metatable, 0);
+
+  lua_pushcfunction(H, lua_clientnewindex);
+  lua_setfield(H, -2, "__newindex");
 
   luaL_newmetatable(H, "Monitor");
 
