@@ -159,6 +159,9 @@ int main(int argc, char **argv) {
   struct cmd_data data;
   int exit_code;
 
+  if (argc < 2)
+    goto quit_error;
+
   display = wl_display_connect(NULL);
   if (!display) {
     fprintf(stderr, "Failed to connect to display\n");
@@ -175,7 +178,12 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
-  if (argc > 1) {
+  if (argc > 2 && strcmp(argv[1], "run") == 0) {
+    run_command(ipc, argv[2], &exit_code);
+
+    wl_display_disconnect(display);
+    exit(exit_code);
+  } else {
     if (strcmp(argv[1], "follow") == 0) {
       data.ipc = ipc;
       data.event = "follow";
@@ -213,17 +221,9 @@ int main(int argc, char **argv) {
       ;
 
     wl_display_disconnect(display);
-
-  } else if (argc > 2 && strcmp(argv[1], "run") == 0) {
-    run_command(ipc, argv[2], &exit_code);
-
-    wl_display_disconnect(display);
-    exit(exit_code);
-  } else {
-    goto quit_error;
   }
 
 quit_error:
-  fprintf(stderr, "Usage: dwlcmd run|follow|subscribe SIGNAL COMMAND\n");
+  fprintf(stderr, "Usage: dwlcmd run|follow|subscribe EVENT COMMAND\n");
   exit(EXIT_FAILURE);
 }
