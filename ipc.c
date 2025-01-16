@@ -133,7 +133,7 @@ void dwl_ipc_send_client_opened_event(Client *b) {
 
   wl_list_for_each(c, &ipc_clients, link) {
     if (c->resource) {
-      err = asprintf(&str, "%llu", (uintptr_t)b);
+      err = asprintf(&str, "%lu", (uintptr_t)b);
 
       if (err == -1)
         fprintf(stderr, "erro no asprintf");
@@ -150,7 +150,7 @@ void dwl_ipc_send_client_closed_event(Client *b) {
 
   wl_list_for_each(c, &ipc_clients, link) {
     if (c->resource) {
-      err = asprintf(&str, "%llu", (uintptr_t)b);
+      err = asprintf(&str, "%lu", (uintptr_t)b);
 
       if (err == -1)
         fprintf(stderr, "erro no asprintf");
@@ -167,7 +167,7 @@ void dwl_ipc_send_client_title_changed_event(Client *b) {
 
   wl_list_for_each(c, &ipc_clients, link) {
     if (c->resource) {
-      err = asprintf(&str, "%llu", (uintptr_t)b);
+      err = asprintf(&str, "%lu", (uintptr_t)b);
 
       if (err == -1)
         fprintf(stderr, "erro no asprintf");
@@ -184,7 +184,7 @@ void dwl_ipc_send_client_state_changed_event(Client *b) {
 
   wl_list_for_each(c, &ipc_clients, link) {
     if (c->resource) {
-      err = asprintf(&str, "%llu", (uintptr_t)b);
+      err = asprintf(&str, "%lu", (uintptr_t)b);
 
       if (err == -1)
         fprintf(stderr, "erro no asprintf");
@@ -210,7 +210,7 @@ void dwl_ipc_send_monitor_added_event(Monitor *m) {
 
   wl_list_for_each(c, &ipc_clients, link) {
     if (c->resource) {
-      err = asprintf(&str, "%llu", (uintptr_t)m);
+      err = asprintf(&str, "%lu", (uintptr_t)m);
 
       if (err == -1)
         fprintf(stderr, "erro no asprintf");
@@ -227,7 +227,7 @@ void dwl_ipc_send_monitor_removed_event(Monitor *m) {
 
   wl_list_for_each(c, &ipc_clients, link) {
     if (c->resource) {
-      err = asprintf(&str, "%llu", (uintptr_t)m);
+      err = asprintf(&str, "%lu", (uintptr_t)m);
 
       if (err == -1)
         fprintf(stderr, "erro no asprintf");

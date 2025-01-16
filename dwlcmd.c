@@ -83,13 +83,13 @@ static void run_command_follow(struct dwl_ipc *ipc, struct cmd_data *data,
                                const char *address) {
   int exit_code;
 
-  printf("%s, %s\n", data->cmd, data->event);
+  /* printf("%s, %s\n", data->cmd, data->event); */
 
   if (data->cmd == NULL) {
     if (address == NULL)
       printf("%s\n", data->event);
     else
-      printf("%s", address);
+      printf("%s\n", address);
   } else {
     run_command(ipc, data->cmd, &exit_code);
   }
