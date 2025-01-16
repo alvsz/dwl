@@ -1,3 +1,4 @@
+#include <lauxlib.h>
 #include <libinput.h>
 #include <lua.h>
 #include <stdint.h>
@@ -20,15 +21,18 @@ void lua_autostart(lua_State *L) {
 
 int lua_getclient(lua_State *L) {
   Client *c;
-  int i = 1;
+  const char *key = luaL_checkstring(L, 1);
+  long long int i = strtoll(key, NULL, 10);
 
   wl_list_for_each(c, &clients, link) {
-    lua_pushinteger(L, i);
-    lua_createclient(L, c);
-    lua_rawset(L, -3);
-    i++;
+    if (i == (uintptr_t)c) {
+      lua_createclient(L, c);
+      return 1;
+    }
   }
-  return 1;
+
+  fprintf(stderr, "o endereço %lld não foi encontrado\n", i);
+  return 0;
 }
 
 int lua_getconfig(lua_State *L, const char *key, int t) {
@@ -71,17 +75,18 @@ int lua_getconfigfield(lua_State *L, const char *key, int t) {
 
 int lua_getmonitor(lua_State *L) {
   Monitor *m;
-  int i = 1;
-
-  lua_newtable(L);
+  const char *key = luaL_checkstring(L, 1);
+  long long int i = strtoll(key, NULL, 10);
 
   wl_list_for_each(m, &mons, link) {
-    lua_pushinteger(L, i);
-    lua_createmonitor(L, m);
-    lua_rawset(L, -3);
-    i++;
+    if (i == (uintptr_t)m) {
+      lua_createmonitor(L, m);
+      return 1;
+    }
   }
-  return 1;
+
+  fprintf(stderr, "o endereço %lld não foi encontrado\n", i);
+  return 0;
 }
 
 int lua_getmonitors(lua_State *L) {
