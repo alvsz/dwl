@@ -7,8 +7,10 @@
 #include <lualib.h>
 
 static void lua_autostart(lua_State *L);
+static int lua_getclient(lua_State *L);
 static int lua_getconfig(lua_State *L, const char *key, int t);
 static int lua_getconfigfield(lua_State *L, const char *key, int t);
+static int lua_getmonitor(lua_State *L);
 static int lua_getmonitors(lua_State *L);
 static int lua_getselmon(lua_State *L);
 static int lua_getfocusedclient(lua_State *L);

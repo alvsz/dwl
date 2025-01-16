@@ -5,6 +5,7 @@
  * You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <lauxlib.h>
@@ -15,6 +16,7 @@
 
 #include "dwl-ipc-protocol.h"
 #include "ipc.h"
+#include "types.h"
 #include "util.h"
 
 struct dwl_ipc_client {
@@ -29,7 +31,7 @@ static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
                      uint32_t id, const char *message) {
   struct dwl_ipc_client *c = wl_resource_get_user_data(resource);
   lua_State *L = c->L;
-  int top;
+  int top, results;
 
   struct wl_resource *command_resource =
       wl_resource_create(client, &dwl_command_interface, 1, id);
@@ -54,7 +56,7 @@ static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
   lua_pushboolean(L, false);
   lua_setglobal(L, "FROM_KIWMIC");
 
-  int results = top - lua_gettop(L);
+  results = top - lua_gettop(L);
 
   if (results == 0) {
     dwl_command_send_done(command_resource, DWL_COMMAND_ERROR_SUCCESS, "");
@@ -123,11 +125,65 @@ bool lua_ipc_init(lua_State *L) {
   return true;
 }
 
-void dwl_ipc_send_updates() {
+void dwl_ipc_send_client_opened_event(Client *b) {
+  struct dwl_ipc_client *c;
+
+  wl_list_for_each(c, &ipc_clients, link) {
+    if (c->resource)
+      dwl_ipc_send_client_opened(c->resource, (uintptr_t)b);
+  }
+}
+
+void dwl_ipc_send_client_closed_event(Client *b) {
+  struct dwl_ipc_client *c;
+
+  wl_list_for_each(c, &ipc_clients, link) {
+    if (c->resource)
+      dwl_ipc_send_client_closed(c->resource, (uintptr_t)b);
+  }
+}
+
+void dwl_ipc_send_client_title_changed_event(Client *b) {
+  struct dwl_ipc_client *c;
+
+  wl_list_for_each(c, &ipc_clients, link) {
+    if (c->resource)
+      dwl_ipc_send_client_title_changed(c->resource, (uintptr_t)b);
+  }
+}
+
+void dwl_ipc_send_client_state_changed_event(Client *b) {
+  struct dwl_ipc_client *c;
+
+  wl_list_for_each(c, &ipc_clients, link) {
+    if (c->resource)
+      dwl_ipc_send_client_state_changed(c->resource, (uintptr_t)b);
+  }
+}
+
+void dwl_ipc_send_frame_event() {
   struct dwl_ipc_client *c;
 
   wl_list_for_each(c, &ipc_clients, link) {
     if (c->resource)
       dwl_ipc_send_frame(c->resource);
+  }
+}
+
+void dwl_ipc_send_monitor_added_event(Monitor *m) {
+  struct dwl_ipc_client *c;
+
+  wl_list_for_each(c, &ipc_clients, link) {
+    if (c->resource)
+      dwl_ipc_send_monitor_added(c->resource, (uintptr_t)m);
+  }
+}
+
+void dwl_ipc_send_monitor_removed_event(Monitor *m) {
+  struct dwl_ipc_client *c;
+
+  wl_list_for_each(c, &ipc_clients, link) {
+    if (c->resource)
+      dwl_ipc_send_monitor_removed(c->resource, (uintptr_t)m);
   }
 }

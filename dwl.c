@@ -544,6 +544,8 @@ void closemon(Monitor *m) {
   }
   focusclient(focustop(selmon), 1);
   printstatus();
+
+  dwl_ipc_send_monitor_removed_event(m);
 }
 
 void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
@@ -879,6 +881,8 @@ void createmon(struct wl_listener *listener, void *data) {
     wlr_output_layout_add_auto(output_layout, wlr_output);
   else
     wlr_output_layout_add(output_layout, wlr_output, m->m.x, m->m.y);
+
+  dwl_ipc_send_monitor_added_event(m);
 }
 
 void createnotify(struct wl_listener *listener, void *data) {
@@ -900,6 +904,8 @@ void createnotify(struct wl_listener *listener, void *data) {
          fullscreennotify);
   LISTEN(&toplevel->events.request_maximize, &c->maximize, maximizenotify);
   LISTEN(&toplevel->events.set_title, &c->set_title, updatetitle);
+
+  dwl_ipc_send_client_opened_event(c);
 }
 
 void createpointer(struct wlr_pointer *pointer) {
@@ -1948,7 +1954,7 @@ void printstatus(void) {
     if (lua_pcall(H, 0, 0, 0))
       fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(H, -1));
   }
-  dwl_ipc_send_updates();
+  dwl_ipc_send_frame_event();
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -2755,6 +2761,8 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     wl_list_remove(&c->flink);
   }
 
+  dwl_ipc_send_client_closed_event(c);
+
   wlr_scene_node_destroy(&c->scene->node);
   printstatus();
   motionnotify(0, NULL, 0, 0, 0, 0);
@@ -2869,8 +2877,8 @@ void updatemons(struct wl_listener *listener, void *data) {
 
 void updatetitle(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_title);
-  // if (c == focustop(c->mon))
   printstatus();
+  dwl_ipc_send_client_title_changed_event(c);
 }
 
 void urgent(struct wl_listener *listener, void *data) {

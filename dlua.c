@@ -18,6 +18,19 @@ void lua_autostart(lua_State *L) {
   }
 }
 
+int lua_getclient(lua_State *L) {
+  Client *c;
+  int i = 1;
+
+  wl_list_for_each(c, &clients, link) {
+    lua_pushinteger(L, i);
+    lua_createclient(L, c);
+    lua_rawset(L, -3);
+    i++;
+  }
+  return 1;
+}
+
 int lua_getconfig(lua_State *L, const char *key, int t) {
   lua_getglobal(L, "dwl");
 
@@ -53,6 +66,21 @@ int lua_getconfigfield(lua_State *L, const char *key, int t) {
     return 0;
   }
 
+  return 1;
+}
+
+int lua_getmonitor(lua_State *L) {
+  Monitor *m;
+  int i = 1;
+
+  lua_newtable(L);
+
+  wl_list_for_each(m, &mons, link) {
+    lua_pushinteger(L, i);
+    lua_createmonitor(L, m);
+    lua_rawset(L, -3);
+    i++;
+  }
   return 1;
 }
 
@@ -337,7 +365,9 @@ void lua_setscrollmethod(lua_State *L) {
 }
 
 int lua_openmodule(lua_State *L) {
-  luaL_Reg funcoes[] = {{"get_monitors", lua_getmonitors},
+  luaL_Reg funcoes[] = {{"get_client", lua_getclient},
+                        {"get_monitor", lua_getmonitor},
+                        {"get_monitors", lua_getmonitors},
                         {"get_focused_monitor", lua_getselmon},
                         {"get_focused_client", lua_getfocusedclient},
                         {"reload_config", lua_reloadconfig},
