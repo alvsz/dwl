@@ -93,6 +93,7 @@ static void run_command_follow(struct dwl_ipc *ipc, struct cmd_data *data,
   } else {
     run_command(ipc, data->cmd, &exit_code);
   }
+  fflush(stdout);
 }
 
 static void on_frame(void *data, struct dwl_ipc *ipc) {
