@@ -6,6 +6,7 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <lauxlib.h>
@@ -127,37 +128,69 @@ bool lua_ipc_init(lua_State *L) {
 
 void dwl_ipc_send_client_opened_event(Client *b) {
   struct dwl_ipc_client *c;
+  char *str;
+  int err;
 
   wl_list_for_each(c, &ipc_clients, link) {
-    if (c->resource)
-      dwl_ipc_send_client_opened(c->resource, (uintptr_t)b);
+    if (c->resource) {
+      err = asprintf(&str, "%llu", (uintptr_t)b);
+
+      if (err == -1)
+        fprintf(stderr, "erro no asprintf");
+
+      dwl_ipc_send_client_opened(c->resource, str);
+    }
   }
 }
 
 void dwl_ipc_send_client_closed_event(Client *b) {
   struct dwl_ipc_client *c;
+  char *str;
+  int err;
 
   wl_list_for_each(c, &ipc_clients, link) {
-    if (c->resource)
-      dwl_ipc_send_client_closed(c->resource, (uintptr_t)b);
+    if (c->resource) {
+      err = asprintf(&str, "%llu", (uintptr_t)b);
+
+      if (err == -1)
+        fprintf(stderr, "erro no asprintf");
+
+      dwl_ipc_send_client_closed(c->resource, str);
+    }
   }
 }
 
 void dwl_ipc_send_client_title_changed_event(Client *b) {
   struct dwl_ipc_client *c;
+  char *str;
+  int err;
 
   wl_list_for_each(c, &ipc_clients, link) {
-    if (c->resource)
-      dwl_ipc_send_client_title_changed(c->resource, (uintptr_t)b);
+    if (c->resource) {
+      err = asprintf(&str, "%llu", (uintptr_t)b);
+
+      if (err == -1)
+        fprintf(stderr, "erro no asprintf");
+
+      dwl_ipc_send_client_title_changed(c->resource, str);
+    }
   }
 }
 
 void dwl_ipc_send_client_state_changed_event(Client *b) {
   struct dwl_ipc_client *c;
+  char *str;
+  int err;
 
   wl_list_for_each(c, &ipc_clients, link) {
-    if (c->resource)
-      dwl_ipc_send_client_state_changed(c->resource, (uintptr_t)b);
+    if (c->resource) {
+      err = asprintf(&str, "%llu", (uintptr_t)b);
+
+      if (err == -1)
+        fprintf(stderr, "erro no asprintf");
+
+      dwl_ipc_send_client_state_changed(c->resource, str);
+    }
   }
 }
 
@@ -172,18 +205,34 @@ void dwl_ipc_send_frame_event() {
 
 void dwl_ipc_send_monitor_added_event(Monitor *m) {
   struct dwl_ipc_client *c;
+  char *str;
+  int err;
 
   wl_list_for_each(c, &ipc_clients, link) {
-    if (c->resource)
-      dwl_ipc_send_monitor_added(c->resource, (uintptr_t)m);
+    if (c->resource) {
+      err = asprintf(&str, "%llu", (uintptr_t)m);
+
+      if (err == -1)
+        fprintf(stderr, "erro no asprintf");
+
+      dwl_ipc_send_monitor_added(c->resource, str);
+    }
   }
 }
 
 void dwl_ipc_send_monitor_removed_event(Monitor *m) {
   struct dwl_ipc_client *c;
+  char *str;
+  int err;
 
   wl_list_for_each(c, &ipc_clients, link) {
-    if (c->resource)
-      dwl_ipc_send_monitor_removed(c->resource, (uintptr_t)m);
+    if (c->resource) {
+      err = asprintf(&str, "%llu", (uintptr_t)m);
+
+      if (err == -1)
+        fprintf(stderr, "erro no asprintf");
+
+      dwl_ipc_send_monitor_removed(c->resource, str);
+    }
   }
 }

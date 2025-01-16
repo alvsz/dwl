@@ -22,34 +22,28 @@
       </description>
     </event>
 
-    <event name="tag_change">
-      <description summary="Change in any of the tags">
-        The tag_change_event is raised when there is a change in the urgent flag for any of the clients, change in which tags are occupied by clients, or change in the current tags in view.
-      </description>
-    </event>
-
     <event name="monitor_added">
-      <arg name="address" type="uint" />
+      <arg name="address" type="string" />
     </event>
 
     <event name="monitor_removed">
-      <arg name="address" type="uint" />
+      <arg name="address" type="string" />
     </event>
 
     <event name="client_opened">
-      <arg name="address" type="uint" />
+      <arg name="address" type="string" />
     </event>
 
     <event name="client_closed">
-      <arg name="address" type="uint" />
+      <arg name="address" type="string" />
     </event>
 
     <event name="client_title_changed">
-      <arg name="address" type="uint" />
+      <arg name="address" type="string" />
     </event>
 
     <event name="client_state_changed">
-      <arg name="address" type="uint" />
+      <arg name="address" type="string" />
     </event>
   </interface>
 
