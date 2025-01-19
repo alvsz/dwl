@@ -115,8 +115,6 @@ static struct wl_listener request_set_shape = {.notify = setcursorshape};
 static struct wl_listener request_start_drag = {.notify = requeststartdrag};
 static struct wl_listener start_drag = {.notify = startdrag};
 static struct wl_listener session_lock_create_lock = {.notify = locksession};
-static struct wl_listener session_lock_mgr_destroy = {.notify =
-                                                          destroysessionmgr};
 
 static struct wl_listener begin_swipe = {.notify = swipe_begin};
 static struct wl_listener update_swipe = {.notify = swipe_update};
@@ -452,6 +450,7 @@ void checkidleinhibitor(struct wlr_surface *exclude) {
 }
 
 void cleanup(void) {
+  cleanuplisteners();
 #ifdef XWAYLAND
   struct wlr_xwayland **xwayland = get_xwayland();
   wlr_xwayland_destroy(*xwayland);
@@ -502,6 +501,41 @@ void cleanupmon(struct wl_listener *listener, void *data) {
   closemon(m);
   wlr_scene_node_destroy(&m->fullscreen_bg->node);
   free(m);
+}
+
+void cleanuplisteners(void) {
+  wl_list_remove(&cursor_axis.link);
+  wl_list_remove(&cursor_button.link);
+  wl_list_remove(&cursor_frame.link);
+  wl_list_remove(&cursor_motion.link);
+  wl_list_remove(&cursor_motion_absolute.link);
+  wl_list_remove(&gpu_reset.link);
+  wl_list_remove(&idle_inhibitor_create.link);
+  wl_list_remove(&layout_change.link);
+  wl_list_remove(&new_input.link);
+  wl_list_remove(&new_virtual_keyboard.link);
+  wl_list_remove(&new_virtual_pointer.link);
+  wl_list_remove(&new_pointer_constraint.link);
+  wl_list_remove(&new_output.link);
+  wl_list_remove(&new_xdg_surface.link);
+  wl_list_remove(&new_xdg_decoration.link);
+  wl_list_remove(&new_xdg_popup.link);
+  wl_list_remove(&new_layer_shell_surface.link);
+  wl_list_remove(&output_mgr_apply.link);
+  wl_list_remove(&output_mgr_test.link);
+  wl_list_remove(&output_power_mgr_set_mode.link);
+  wl_list_remove(&request_activate.link);
+  wl_list_remove(&request_cursor.link);
+  wl_list_remove(&request_set_psel.link);
+  wl_list_remove(&request_set_sel.link);
+  wl_list_remove(&request_set_shape.link);
+  wl_list_remove(&request_start_drag.link);
+  wl_list_remove(&start_drag.link);
+  wl_list_remove(&session_lock_create_lock.link);
+#ifdef XWAYLAND
+  wl_list_remove(&new_xwayland_surface.link);
+  wl_list_remove(&xwayland_ready.link);
+#endif
 }
 
 void closemon(Monitor *m) {
@@ -1103,11 +1137,6 @@ void destroypointerconstraint(struct wl_listener *listener, void *data) {
 void destroysessionlock(struct wl_listener *listener, void *data) {
   SessionLock *lock = wl_container_of(listener, lock, destroy);
   destroylock(lock, 0);
-}
-
-void destroysessionmgr(struct wl_listener *listener, void *data) {
-  wl_list_remove(&session_lock_create_lock.link);
-  wl_list_remove(&session_lock_mgr_destroy.link);
 }
 
 void destroykeyboardgroup(struct wl_listener *listener, void *data) {
@@ -2377,7 +2406,6 @@ void setup(void) {
 
   session_lock_mgr = wlr_session_lock_manager_v1_create(dpy);
   wl_signal_add(&session_lock_mgr->events.new_lock, &session_lock_create_lock);
-  wl_signal_add(&session_lock_mgr->events.destroy, &session_lock_mgr_destroy);
   locked_bg = wlr_scene_rect_create(layers[LyrBlock], sgeom.width, sgeom.height,
                                     (float[4]){0.1f, 0.1f, 0.1f, 1.0f});
   wlr_scene_node_set_enabled(&locked_bg->node, 0);
