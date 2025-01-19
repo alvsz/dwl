@@ -89,20 +89,18 @@ static struct wl_listener cursor_frame = {.notify = cursorframe};
 static struct wl_listener cursor_motion = {.notify = motionrelative};
 static struct wl_listener cursor_motion_absolute = {.notify = motionabsolute};
 static struct wl_listener gpu_reset = {.notify = gpureset};
-static struct wl_listener idle_inhibitor_create = {.notify =
-                                                       createidleinhibitor};
 static struct wl_listener layout_change = {.notify = updatemons};
-static struct wl_listener new_input = {.notify = inputdevice};
+static struct wl_listener new_idle_inhibitor = {.notify = createidleinhibitor};
+static struct wl_listener new_input_device = {.notify = inputdevice};
 static struct wl_listener new_virtual_keyboard = {.notify = virtualkeyboard};
 static struct wl_listener new_virtual_pointer = {.notify = virtualpointer};
 static struct wl_listener new_pointer_constraint = {
     .notify = createpointerconstraint};
 static struct wl_listener new_output = {.notify = createmon};
-static struct wl_listener new_xdg_surface = {.notify = createnotify};
+static struct wl_listener new_xdg_toplevel = {.notify = createnotify};
 static struct wl_listener new_xdg_popup = {.notify = createpopup};
 static struct wl_listener new_xdg_decoration = {.notify = createdecoration};
-static struct wl_listener new_layer_shell_surface = {.notify =
-                                                         createlayersurface};
+static struct wl_listener new_layer_surface = {.notify = createlayersurface};
 static struct wl_listener output_mgr_apply = {.notify = outputmgrapply};
 static struct wl_listener output_mgr_test = {.notify = outputmgrtest};
 static struct wl_listener output_power_mgr_set_mode = {.notify =
@@ -111,10 +109,10 @@ static struct wl_listener request_activate = {.notify = urgent};
 static struct wl_listener request_cursor = {.notify = setcursor};
 static struct wl_listener request_set_psel = {.notify = setpsel};
 static struct wl_listener request_set_sel = {.notify = setsel};
-static struct wl_listener request_set_shape = {.notify = setcursorshape};
+static struct wl_listener request_set_cursor_shape = {.notify = setcursorshape};
 static struct wl_listener request_start_drag = {.notify = requeststartdrag};
 static struct wl_listener start_drag = {.notify = startdrag};
-static struct wl_listener session_lock_create_lock = {.notify = locksession};
+static struct wl_listener new_session_lock = {.notify = locksession};
 
 static struct wl_listener begin_swipe = {.notify = swipe_begin};
 static struct wl_listener update_swipe = {.notify = swipe_update};
@@ -510,17 +508,17 @@ void cleanuplisteners(void) {
   wl_list_remove(&cursor_motion.link);
   wl_list_remove(&cursor_motion_absolute.link);
   wl_list_remove(&gpu_reset.link);
-  wl_list_remove(&idle_inhibitor_create.link);
+  wl_list_remove(&new_idle_inhibitor.link);
   wl_list_remove(&layout_change.link);
-  wl_list_remove(&new_input.link);
+  wl_list_remove(&new_input_device.link);
   wl_list_remove(&new_virtual_keyboard.link);
   wl_list_remove(&new_virtual_pointer.link);
   wl_list_remove(&new_pointer_constraint.link);
   wl_list_remove(&new_output.link);
-  wl_list_remove(&new_xdg_surface.link);
+  wl_list_remove(&new_xdg_toplevel.link);
   wl_list_remove(&new_xdg_decoration.link);
   wl_list_remove(&new_xdg_popup.link);
-  wl_list_remove(&new_layer_shell_surface.link);
+  wl_list_remove(&new_layer_surface.link);
   wl_list_remove(&output_mgr_apply.link);
   wl_list_remove(&output_mgr_test.link);
   wl_list_remove(&output_power_mgr_set_mode.link);
@@ -528,10 +526,10 @@ void cleanuplisteners(void) {
   wl_list_remove(&request_cursor.link);
   wl_list_remove(&request_set_psel.link);
   wl_list_remove(&request_set_sel.link);
-  wl_list_remove(&request_set_shape.link);
+  wl_list_remove(&request_set_cursor_shape.link);
   wl_list_remove(&request_start_drag.link);
   wl_list_remove(&start_drag.link);
-  wl_list_remove(&session_lock_create_lock.link);
+  wl_list_remove(&new_session_lock.link);
 #ifdef XWAYLAND
   wl_list_remove(&new_xwayland_surface.link);
   wl_list_remove(&xwayland_ready.link);
@@ -2392,20 +2390,19 @@ void setup(void) {
   wl_list_init(&ipc_clients);
 
   xdg_shell = wlr_xdg_shell_create(dpy, 6);
-  wl_signal_add(&xdg_shell->events.new_toplevel, &new_xdg_surface);
+  wl_signal_add(&xdg_shell->events.new_toplevel, &new_xdg_toplevel);
   wl_signal_add(&xdg_shell->events.new_popup, &new_xdg_popup);
 
   layer_shell = wlr_layer_shell_v1_create(dpy, 3);
-  wl_signal_add(&layer_shell->events.new_surface, &new_layer_shell_surface);
+  wl_signal_add(&layer_shell->events.new_surface, &new_layer_surface);
 
   idle_notifier = wlr_idle_notifier_v1_create(dpy);
 
   idle_inhibit_mgr = wlr_idle_inhibit_v1_create(dpy);
-  wl_signal_add(&idle_inhibit_mgr->events.new_inhibitor,
-                &idle_inhibitor_create);
+  wl_signal_add(&idle_inhibit_mgr->events.new_inhibitor, &new_idle_inhibitor);
 
   session_lock_mgr = wlr_session_lock_manager_v1_create(dpy);
-  wl_signal_add(&session_lock_mgr->events.new_lock, &session_lock_create_lock);
+  wl_signal_add(&session_lock_mgr->events.new_lock, &new_session_lock);
   locked_bg = wlr_scene_rect_create(layers[LyrBlock], sgeom.width, sgeom.height,
                                     (float[4]){0.1f, 0.1f, 0.1f, 1.0f});
   wlr_scene_node_set_enabled(&locked_bg->node, 0);
@@ -2456,7 +2453,7 @@ void setup(void) {
 
   cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(dpy, 1);
   wl_signal_add(&cursor_shape_mgr->events.request_set_shape,
-                &request_set_shape);
+                &request_set_cursor_shape);
 
   /*
    * Configures a seat, which is a single "seat" at which a user sits and
@@ -2464,7 +2461,7 @@ void setup(void) {
    * pointer, touch, and drawing tablet device. We also rig up a listener to
    * let us know when new input devices are available on the backend.
    */
-  wl_signal_add(&backend->events.new_input, &new_input);
+  wl_signal_add(&backend->events.new_input, &new_input_device);
   virtual_keyboard_mgr = wlr_virtual_keyboard_manager_v1_create(dpy);
   wl_signal_add(&virtual_keyboard_mgr->events.new_virtual_keyboard,
                 &new_virtual_keyboard);
