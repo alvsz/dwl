@@ -19,8 +19,9 @@
 #define LISTEN(E, L, H) wl_signal_add((E), ((L)->notify = (H), (L)))
 #define LISTEN_STATIC(E, H)                                                    \
   do {                                                                         \
-    static struct wl_listener _l = {.notify = (H)};                            \
-    wl_signal_add((E), &_l);                                                   \
+    struct wl_listener *_l = ecalloc(1, sizeof(*_l));                          \
+    _l->notify = (H);                                                          \
+    wl_signal_add((E), _l);                                                    \
   } while (0)
 #define UNUSED(x) UNUSED_##x __attribute__((__unused__))
 
@@ -29,4 +30,3 @@ void *ecalloc(size_t nmemb, size_t size);
 int fd_set_nonblock(int fd);
 
 #endif // !UTIL_H
-
