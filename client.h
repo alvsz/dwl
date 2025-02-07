@@ -13,6 +13,31 @@ static inline int client_is_x11(Client *c) {
   return 0;
 }
 
+static inline void
+client_get_size_hints(Client *c, struct wlr_box *max, struct wlr_box *min)
+{
+	struct wlr_xdg_toplevel *toplevel;
+	struct wlr_xdg_toplevel_state *state;
+#ifdef XWAYLAND
+	if (client_is_x11(c)) {
+		xcb_size_hints_t *size_hints = c->surface.xwayland->size_hints;
+		if (size_hints) {
+			max->width = size_hints->max_width;
+			max->height = size_hints->max_height;
+			min->width = size_hints->min_width;
+			min->height = size_hints->min_height;
+		}
+		return;
+	}
+#endif
+	toplevel = c->surface.xdg->toplevel;
+	state = &toplevel->current;
+	max->width = state->max_width;
+	max->height = state->max_height;
+	min->width = state->min_width;
+	min->height = state->min_height;
+}
+
 static inline struct wlr_surface *client_surface(Client *c) {
 #ifdef XWAYLAND
   if (client_is_x11(c))
@@ -191,8 +216,8 @@ static inline const char *client_get_title(Client *c) {
 }
 
 static inline int client_is_float_type(Client *c) {
-  struct wlr_xdg_toplevel *toplevel;
-  struct wlr_xdg_toplevel_state state;
+  struct wlr_box min = {0}, max = {0};
+	client_get_size_hints(c, &max, &min);
 
 #ifdef XWAYLAND
   if (client_is_x11(c)) {
@@ -210,17 +235,14 @@ static inline int client_is_float_type(Client *c) {
         return 1;
 
     return size_hints && size_hints->min_width > 0 &&
-           size_hints->min_height > 0 &&
-           (size_hints->max_width == size_hints->min_width ||
-            size_hints->max_height == size_hints->min_height);
+      size_hints->min_height > 0 &&
+      (size_hints->max_width == size_hints->min_width ||
+       size_hints->max_height == size_hints->min_height);
   }
 #endif
 
-  toplevel = c->surface.xdg->toplevel;
-  state = toplevel->current;
-  return toplevel->parent || (state.min_width != 0 && state.min_height != 0 &&
-                              (state.min_width == state.max_width ||
-                               state.min_height == state.max_height));
+  return ((min.width > 0 || min.height > 0 || max.width > 0 || max.height > 0)
+		  && (min.width == max.width || min.height == max.height));
 }
 
 static inline int client_is_rendered_on_mon(Client *c, Monitor *m) {
