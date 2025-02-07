@@ -115,20 +115,20 @@ int lua_monitornewindex(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
   const char *key = luaL_checkstring(L, 2);
   unsigned int i;
-  float n;
+  double n;
 
   if (strcmp(key, "seltags") == 0) {
-    i = luaL_checkinteger(L, 3);
+    i = (unsigned int)luaL_checkinteger(L, 3);
     viewmonitor(lm->m, &(const Arg){.ui = i});
     return 0;
   } else if (strcmp(key, "mfact") == 0) {
-    n = luaL_checknumber(L, 3);
-    lm->m->mfact = lm->m->pertag->mfacts[lm->m->pertag->curtag] = n;
+    i = (unsigned int)luaL_checknumber(L, 3);
+    lm->m->mfact = lm->m->pertag->mfacts[lm->m->pertag->curtag] = i;
     arrange(lm->m);
     return 0;
   } else if (strcmp(key, "nmaster") == 0) {
-    i = luaL_checknumber(L, 3);
-    lm->m->nmaster = lm->m->pertag->nmasters[lm->m->pertag->curtag] = MAX(i, 0);
+    n = luaL_checknumber(L, 3);
+    lm->m->nmaster = lm->m->pertag->nmasters[lm->m->pertag->curtag] = MAX(n, 0);
     arrange(lm->m);
     return 0;
   }
@@ -158,7 +158,7 @@ int lua_monitorsetgapsdefault(lua_State *L) {
 
 int lua_monitorsetmfact(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
-  float mfact = luaL_checknumber(L, 2);
+  float mfact = (float)luaL_checknumber(L, 2);
 
   if (mfact < 0.1 || mfact > 0.9)
     return 0;
