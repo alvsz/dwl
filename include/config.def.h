@@ -22,9 +22,6 @@ static float floatcolor[]            = COLOR(0xff0000ff);
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You can also use glsl colors */
 
-/* tagging - TAGCOUNT must be no greater than 31 */
-#define TAGCOUNT (9)
-
 /* logging */
 static int log_level = WLR_ERROR;
 

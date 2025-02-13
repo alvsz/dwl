@@ -1,84 +1,28 @@
 /*
  * See LICENSE file for copyright and license details.
  */
-#define _GNU_SOURCE
-#include <getopt.h>
-#include <lauxlib.h>
-#include <libinput.h>
-#include <linux/input-event-codes.h>
-#include <lua.h>
-#include <lualib.h>
+
 #include <math.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <time.h>
-#include <unistd.h>
-#include <wayland-server-core.h>
-#include <wayland-util.h>
-#include <wlr/backend.h>
-#include <wlr/backend/libinput.h>
-#include <wlr/interfaces/wlr_keyboard.h>
-#include <wlr/render/allocator.h>
-#include <wlr/render/wlr_renderer.h>
-#include <wlr/types/wlr_alpha_modifier_v1.h>
-#include <wlr/types/wlr_compositor.h>
-#include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_cursor_shape_v1.h>
-#include <wlr/types/wlr_data_control_v1.h>
-#include <wlr/types/wlr_data_device.h>
-#include <wlr/types/wlr_drm.h>
-#include <wlr/types/wlr_export_dmabuf_v1.h>
-#include <wlr/types/wlr_fractional_scale_v1.h>
-#include <wlr/types/wlr_gamma_control_v1.h>
-#include <wlr/types/wlr_idle_inhibit_v1.h>
-#include <wlr/types/wlr_idle_notify_v1.h>
-#include <wlr/types/wlr_input_device.h>
-#include <wlr/types/wlr_keyboard.h>
-#include <wlr/types/wlr_keyboard_group.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
-#include <wlr/types/wlr_linux_dmabuf_v1.h>
-#include <wlr/types/wlr_output.h>
-#include <wlr/types/wlr_output_layout.h>
-#include <wlr/types/wlr_output_management_v1.h>
 #include <wlr/types/wlr_output_power_management_v1.h>
-#include <wlr/types/wlr_pointer.h>
 #include <wlr/types/wlr_pointer_constraints_v1.h>
-#include <wlr/types/wlr_pointer_gestures_v1.h>
-#include <wlr/types/wlr_presentation_time.h>
-#include <wlr/types/wlr_primary_selection.h>
-#include <wlr/types/wlr_primary_selection_v1.h>
-#include <wlr/types/wlr_relative_pointer_v1.h>
-#include <wlr/types/wlr_scene.h>
-#include <wlr/types/wlr_screencopy_v1.h>
-#include <wlr/types/wlr_seat.h>
-#include <wlr/types/wlr_server_decoration.h>
-#include <wlr/types/wlr_session_lock_v1.h>
-#include <wlr/types/wlr_single_pixel_buffer_v1.h>
-#include <wlr/types/wlr_subcompositor.h>
-#include <wlr/types/wlr_viewporter.h>
-#include <wlr/types/wlr_virtual_keyboard_v1.h>
-#include <wlr/types/wlr_virtual_pointer_v1.h>
-#include <wlr/types/wlr_xcursor_manager.h>
-#include <wlr/types/wlr_xdg_activation_v1.h>
 #include <wlr/types/wlr_xdg_decoration_v1.h>
-#include <wlr/types/wlr_xdg_output_v1.h>
 #include <wlr/types/wlr_xdg_shell.h>
-#include <wlr/util/log.h>
-#include <wlr/util/region.h>
-#include <xkbcommon/xkbcommon.h>
 
 #include "util.h"
-
-#include "types.h"
 
 /* function declarations */
 #include "dlua.h"
 #include "dwl.h"
 #include "ipc.h"
+#include "pertag.h"
+#include "types.h"
 
 /* variables */
 static const char broken[] = "broken";
@@ -104,6 +48,7 @@ static struct wlr_xdg_activation_v1 *activation;
 static struct wlr_xdg_decoration_manager_v1 *xdg_decoration_mgr;
 static struct wl_list clients; /* tiling order */
 static struct wl_list fstack;  /* focus order */
+static struct wl_list ipc_clients;
 static struct wlr_idle_notifier_v1 *idle_notifier;
 static struct wlr_idle_inhibit_manager_v1 *idle_inhibit_mgr;
 static struct wlr_layer_shell_v1 *layer_shell;
@@ -152,18 +97,6 @@ lua_State *H;
 
 /* attempt to encapsulate suck into one file */
 #include "client.h"
-
-struct Pertag {
-  unsigned int curtag, prevtag;      /* current and previous tag */
-  int nmasters[TAGCOUNT + 1];        /* number of windows in master area */
-  float mfacts[TAGCOUNT + 1];        /* mfacts per tag */
-  unsigned int sellts[TAGCOUNT + 1]; /* selected layouts */
-  const Layout
-      *ltidxs[TAGCOUNT + 1][2]; /* matrix of tags and layouts indexes  */
-};
-
-#include "dlua.c"
-#include "ipc.c"
 
 /* function implementations */
 void applybounds(Client *c, struct wlr_box *bbox) {
@@ -477,8 +410,9 @@ void checkidleinhibitor(struct wlr_surface *exclude) {
 
 void cleanup(void) {
 #ifdef XWAYLAND
-  wlr_xwayland_destroy(xwayland);
-  xwayland = NULL;
+  struct wlr_xwayland **xwayland = get_xwayland();
+  wlr_xwayland_destroy(*xwayland);
+  *xwayland = NULL;
 #endif
   wl_display_destroy_clients(dpy);
 
@@ -1393,13 +1327,14 @@ void gpureset(struct wl_listener *listener, void *data) {
 void handlesig(int signo) {
   if (signo == SIGCHLD) {
 #ifdef XWAYLAND
+    struct wlr_xwayland **xwayland = get_xwayland();
     siginfo_t in;
     /* wlroots expects to reap the XWayland process itself, so we
      * use WNOWAIT to keep the child waitable until we know it's not
      * XWayland.
      */
     while (!waitid(P_ALL, 0, &in, WEXITED | WNOHANG | WNOWAIT) && in.si_pid &&
-           (!xwayland || in.si_pid != xwayland->server->pid))
+           (!*xwayland || in.si_pid != (*xwayland)->server->pid))
       waitpid(in.si_pid, NULL, 0);
 #else
     while (waitpid(-1, NULL, WNOHANG) > 0)
@@ -1683,12 +1618,12 @@ void maximizenotify(struct wl_listener *listener, void *data) {
 
 void monocle(Monitor *m) {
   Client *c;
-  int n = 0;
+  /* int n = 0; */
 
   wl_list_for_each(c, &clients, link) {
     if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
       continue;
-    n++;
+    /* n++; */
     if (!monoclegaps)
       resize(c, m->w, 0);
     else
@@ -1925,7 +1860,7 @@ void outputmgrtest(struct wl_listener *listener, void *data) {
   outputmgrapplyortest(config, 1);
 }
 
-static void parsecolor(const char *val, float color[4]) {
+void parsecolor(const char *val, float color[4]) {
   uint8_t r, g, b, a;
   if (sscanf(val, "#%02hhx%02hhx%02hhx%02hhx", &r, &g, &b, &a) == 4) {
     color[0] = (float)r / 0xFF;
@@ -2528,15 +2463,16 @@ void setup(void) {
    * compositor has Xwayland support */
   unsetenv("DISPLAY");
 #ifdef XWAYLAND
+  struct wlr_xwayland **xwayland = get_xwayland();
   /*
    * Initialise the XWayland X server.
    * It will be started when the first X client is started.
    */
-  if ((xwayland = wlr_xwayland_create(dpy, compositor, 1))) {
-    LISTEN_STATIC(&xwayland->events.ready, xwaylandready);
-    LISTEN_STATIC(&xwayland->events.new_surface, createnotifyx11);
+  if ((*xwayland = wlr_xwayland_create(dpy, compositor, 1))) {
+    LISTEN_STATIC(&(*xwayland)->events.ready, xwaylandready);
+    LISTEN_STATIC(&(*xwayland)->events.new_surface, createnotifyx11);
 
-    setenv("DISPLAY", xwayland->display_name, 1);
+    setenv("DISPLAY", (*xwayland)->display_name, 1);
   } else {
     fprintf(stderr,
             "failed to setup XWayland X server, continuing without it\n");
@@ -3035,9 +2971,46 @@ void zoom(const Arg *arg) {
   arrange(selmon);
 }
 
-#ifdef XWAYLAND
-#include "xwayland.c"
-#endif
+const char *get_broken(void) { return broken; }
+struct wl_list *get_clients(void) { return &clients; }
+struct wl_list *get_ipc_clients(void) { return &ipc_clients; }
+int *get_enablegaps(void) { return &enablegaps; }
+struct wl_display *get_dpy(void) { return dpy; }
+struct wl_list *get_mons(void) { return &mons; }
+struct wlr_seat *get_seat(void) { return seat; }
+Monitor *get_selmon(void) { return selmon; }
+struct wlr_xcursor_manager *get_cursor_mgr(void) { return cursor_mgr; }
+
+float *get_config_rootcolor(void) { return rootcolor; }
+float *get_config_bordercolor(void) { return bordercolor; }
+float *get_config_focuscolor(void) { return focuscolor; }
+float *get_config_urgentcolor(void) { return urgentcolor; }
+float *get_config_floatcolor(void) { return floatcolor; }
+unsigned int *get_config_borderpx(void) { return &borderpx; }
+enum libinput_config_accel_profile *get_config_accel_profile(void) {
+  return &accel_profile;
+}
+double *get_config_accel_speed(void) { return &accel_speed; }
+enum libinput_config_click_method *get_config_click_method(void) {
+  return &click_method;
+}
+enum libinput_config_scroll_method *get_config_scroll_method(void) {
+  return &scroll_method;
+}
+int *get_config_tap_to_click(void) { return &tap_to_click; }
+int *get_config_tap_and_drag(void) { return &tap_and_drag; }
+int *get_config_drag_lock(void) { return &drag_lock; }
+int *get_config_natural_scrolling(void) { return &natural_scrolling; }
+int *get_config_disable_while_typing(void) { return &disable_while_typing; }
+int *get_config_left_handed(void) { return &left_handed; }
+int *get_config_middle_button_emulation(void) {
+  return &middle_button_emulation;
+}
+
+unsigned int get_config_gappih(void) { return gappih; }
+unsigned int get_config_gappiv(void) { return gappiv; }
+unsigned int get_config_gappoh(void) { return gappoh; }
+unsigned int get_config_gappov(void) { return gappov; }
 
 int main(int argc, char *argv[]) {
   char *startup_cmd = NULL;
@@ -3060,7 +3033,7 @@ int main(int argc, char *argv[]) {
   if (!getenv("XDG_RUNTIME_DIR"))
     die("XDG_RUNTIME_DIR must be set");
   setup();
-  lua_setup();
+  lua_setup(&H);
   run(startup_cmd);
   cleanup();
   return EXIT_SUCCESS;

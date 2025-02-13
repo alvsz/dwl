@@ -5,6 +5,24 @@
  * that they will simply compile out if the chosen #defines leave them unused.
  */
 
+#ifndef CLIENT_H
+#define CLIENT_H
+
+#include "dwl.h"
+#include <errno.h>
+#include <wlr/util/edges.h>
+#include <sys/wait.h>
+#include <wlr/types/wlr_layer_shell_v1.h>
+#include <wlr/types/wlr_xdg_shell.h>
+#include <wlr/types/wlr_scene.h>
+
+#ifdef XWAYLAND
+#include <wlr/xwayland.h>
+#include "xwayland.h"
+#endif
+
+#include "types.h"
+
 /* Leave these functions first; they're used in the others */
 static inline int client_is_x11(Client *c) {
 #ifdef XWAYLAND
@@ -224,6 +242,8 @@ static inline int client_is_float_type(Client *c) {
     struct wlr_xwayland_surface *surface = c->surface.xwayland;
     xcb_size_hints_t *size_hints = surface->size_hints;
     size_t i;
+    xcb_atom_t *netatom = get_netatom();
+
     if (surface->modal)
       return 1;
 
@@ -292,11 +312,12 @@ static inline int client_is_unmanaged(Client *c) {
 
 static inline void client_notify_enter(struct wlr_surface *s,
                                        struct wlr_keyboard *kb) {
+  struct wlr_seat *sseat = get_seat();
   if (kb)
-    wlr_seat_keyboard_notify_enter(seat, s, kb->keycodes, kb->num_keycodes,
+    wlr_seat_keyboard_notify_enter(sseat, s, kb->keycodes, kb->num_keycodes,
                                    &kb->modifiers);
   else
-    wlr_seat_keyboard_notify_enter(seat, s, NULL, 0, NULL);
+    wlr_seat_keyboard_notify_enter(sseat, s, NULL, 0, NULL);
 }
 
 static inline void client_restack_surface(Client *c) {
@@ -391,3 +412,5 @@ static inline int client_wants_fullscreen(Client *c) {
 #endif
   return c->surface.xdg->toplevel->requested.fullscreen;
 }
+
+#endif // !CLIENT_H

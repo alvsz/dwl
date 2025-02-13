@@ -3,8 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "dlua.h"
+#include "dlua_client.h"
+#include "dlua_monitor.h"
 #include "dwl.h"
+#include "pertag.h"
 #include "util.h"
 
 #define SETGAPS(lm, oh, ov, ih, iv)                                            \
@@ -37,7 +39,7 @@ int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm) {
 
   lua_newtable(L);
 
-  wl_list_for_each(c, &clients, link) {
+  wl_list_for_each(c, get_clients(), link) {
     if (c->mon == lm->m) {
       lua_pushinteger(L, i);
       lua_createclient(L, c);
@@ -59,7 +61,7 @@ int lua_monitorindex(lua_State *L) {
     lua_getclientsformonitor(L, lm);
     return 1;
   } else if (strcmp(key, "focused") == 0) {
-    lua_pushboolean(L, lm->m == selmon);
+    lua_pushboolean(L, lm->m == get_selmon());
     return 1;
   } else if (strcmp(key, "seltags") == 0) {
     lua_pushinteger(L, lm->m->tagset[lm->m->seltags]);
@@ -128,7 +130,8 @@ int lua_monitornewindex(lua_State *L) {
     return 0;
   } else if (strcmp(key, "nmaster") == 0) {
     n = luaL_checknumber(L, 3);
-    lm->m->nmaster = lm->m->pertag->nmasters[lm->m->pertag->curtag] = MAX(n, 0);
+    lm->m->nmaster = lm->m->pertag->nmasters[lm->m->pertag->curtag] =
+        MAX((int)n, 0);
     arrange(lm->m);
     return 0;
   }
@@ -151,7 +154,8 @@ int lua_monitorsetgaps(lua_State *L) {
 int lua_monitorsetgapsdefault(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
 
-  SETGAPS(lm, gappoh, gappov, gappih, gappiv);
+  SETGAPS(lm, get_config_gappoh(), get_config_gappov(), get_config_gappih(),
+          get_config_gappiv());
   arrange(lm->m);
   return 0;
 }
@@ -187,8 +191,9 @@ int lua_monitorsetnmaster(lua_State *L) {
 
 int lua_monitortogglegaps(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  int *enablegaps = get_enablegaps();
 
-  enablegaps = !enablegaps;
+  *enablegaps = !*enablegaps;
   arrange(lm->m);
 
   printstatus();

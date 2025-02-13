@@ -1,6 +1,10 @@
 #ifndef IPC_H
 #define IPC_H
 
+#include <lua.h>
+#include <lauxlib.h>
+#include "types.h"
+
 bool lua_ipc_init(lua_State *L);
 void dwl_ipc_send_client_opened_event(Client *b);
 void dwl_ipc_send_client_closed_event(Client *b);

@@ -5,3 +5,4 @@ dwlcmd
 *-protocol.h
 .ccls-cache
 compile_commands.json
+obj

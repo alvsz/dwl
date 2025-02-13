@@ -1,6 +1,13 @@
 // clang-format off
 
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <wlr/util/log.h>
 #include <X11/XF86keysym.h>
+
+#include "types.h"
+#include "dwl.h"
 
 #define COLOR(hex)    { ((hex >> 24) & 0xFF) / 255.0f, \
                         ((hex >> 16) & 0xFF) / 255.0f, \
@@ -28,9 +35,6 @@ static float floatcolor[]            = COLOR(0xff0000ff);
 
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You can also use glsl colors */
-
-/* tagging - TAGCOUNT must be no greater than 31 */
-#define TAGCOUNT (7)
 
 /* logging */
 static int log_level = WLR_ERROR;
@@ -127,3 +131,5 @@ static const Button buttons[] = {
 	{ MODKEY, BTN_RIGHT,  togglefloating, {0} },
 	{ MODKEY, BTN_MIDDLE, moveresize,     {.ui = CurResize} },
 };
+
+#endif // !CONFIG_H
