@@ -177,7 +177,8 @@ void applybounds(Client *c, struct wlr_box *bbox) {
     client_get_size_hints(c, &max, &min);
     /* try to set size hints */
     c->geom.width = MAX(min.width + (2 * (int)c->bw), c->geom.width);
-    c->geom.height = MAX(min.height + (2 * (int)c->bw), c->geom.height);
+    c->geom.height =
+        MAX(min.height + ((int)c->bw + (int)c->bt), c->geom.height);
     /* Some clients set their max size to INT_MAX, which does not violate the
      * protocol but it's unnecesary, as they can set their max size to zero. */
     if (max.width > 0 &&
@@ -185,7 +186,7 @@ void applybounds(Client *c, struct wlr_box *bbox) {
       c->geom.width = MIN(max.width + (2 * c->bw), c->geom.width);
     if (max.height > 0 &&
         !(2 * c->bw > INT_MAX - max.height)) /* Checks for overflow */
-      c->geom.height = MIN(max.height + (2 * c->bw), c->geom.height);
+      c->geom.height = MIN(max.height + (c->bw + c->bt), c->geom.height);
   }
 
   if (c->geom.x >= bbox->x + bbox->width)
@@ -1987,8 +1988,9 @@ void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
                   uint32_t time) {
   struct timespec now;
 
-  if (surface != seat->pointer_state.focused_surface && sloppyfocus && time &&
-      c && !client_is_unmanaged(c))
+  if (
+      /* surface != seat->pointer_state.focused_surface &&  */
+      sloppyfocus && time && c && !client_is_unmanaged(c))
     focusclient(c, 0);
 
   /* If surface is NULL, clear pointer focus */
@@ -2112,6 +2114,7 @@ void draw_cairo_client(Client *c) {
   cairo_t *cr;
   cairo_surface_t *c_surface;
   cairo_text_extents_t extents;
+  double x, y;
 
   draw_cairo(c->geom.width, c->geom.height, &c_surface, &cr);
 
@@ -2122,8 +2125,8 @@ void draw_cairo_client(Client *c) {
   cairo_stroke(cr);
 
   cairo_text_extents(cr, client_get_title(c), &extents);
-  double x = (c->geom.width - extents.width) / 2;
-  double y = (c->bw + c->bt - extents.height) / 2 + extents.height;
+  x = (c->geom.width - extents.width) / 2;
+  y = (c->bw + c->bt - extents.height) / 2 + extents.height;
   cairo_move_to(cr, x, y);
   cairo_set_source_rgb(cr, 0, 0, 0);
   cairo_show_text(cr, client_get_title(c));

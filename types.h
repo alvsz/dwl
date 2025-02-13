@@ -132,6 +132,7 @@ typedef struct {
   struct wl_listener destroy;
   struct wl_listener unmap;
   struct wl_listener surface_commit;
+  struct wlr_scene_buffer *scene_buffer;
 } LayerSurface;
 
 typedef struct {
