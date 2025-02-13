@@ -7,9 +7,6 @@ SRC_DIR = ./src
 OBJ_DIR = ./obj
 INCLUDE_DIR = ./include
 
-SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
-OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
-
 # flags for compiling
 DWLCPPFLAGS = -I$(INCLUDE_DIR) -DWLR_USE_UNSTABLE -D_POSIX_C_SOURCE=200809L \
 	-DVERSION=\"$(VERSION)\" $(XWAYLAND)
@@ -23,14 +20,17 @@ PKGS      = wlroots-0.18 wayland-server xkbcommon libinput lua $(XLIBS)
 DWLCFLAGS = `$(PKG_CONFIG) --cflags $(PKGS)` $(DWLCPPFLAGS) $(DWLDEVCFLAGS) $(CFLAGS)
 LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` -lm $(LIBS)
 
-all: dwl dwlcmd
+all: cursor-shape-v1-protocol.h pointer-constraints-unstable-v1-protocol.h wlr-layer-shell-unstable-v1-protocol.h wlr-output-power-management-unstable-v1-protocol.h xdg-shell-protocol.h dwl-ipc-protocol.c dwl-ipc-protocol.h dwl-ipc-client-protocol.h dwl dwlcmd
+
+SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 ifneq ($(MODKEY),)
 	echo $(MODKEY)
 MODKEYVAL = -DMODKEY=$(MODKEY)
 endif
 
-dwl: $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES))
+dwl: $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES)) 
 	$(CC) $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES)) $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
