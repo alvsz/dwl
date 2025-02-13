@@ -1,6 +1,7 @@
 #ifndef DWL_H
 #define DWL_H
 
+#include "types.h"
 static void applybounds(Client *c, struct wlr_box *bbox);
 static void applyrules(Client *c);
 static void arrange(Monitor *m);
@@ -52,6 +53,8 @@ static void destroysessionlock(struct wl_listener *listener, void *data);
 static void destroysessionmgr(struct wl_listener *listener, void *data);
 static void destroykeyboardgroup(struct wl_listener *listener, void *data);
 static Monitor *dirtomon(enum wlr_direction dir);
+static void draw_cairo_client(Client *c);
+static void draw_cairo(int w, int h, cairo_surface_t **c_surface, cairo_t **cr);
 static void focusclient(Client *c, int lift);
 static void focusmon(const Arg *arg);
 static void focusortogglematchingscratch(const Arg *arg);
