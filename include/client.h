@@ -365,11 +365,6 @@ static inline uint32_t client_set_size(Client *c, uint32_t width,
     return 0;
   }
 #endif
-    if ((int32_t)height < 1)
-      height = 1;
-    if ((int32_t)width < 1)
-      width = 1;
-
   if ((int32_t)width == c->surface.xdg->toplevel->current.width &&
       (int32_t)height == c->surface.xdg->toplevel->current.height)
     return 0;
