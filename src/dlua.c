@@ -9,8 +9,8 @@
 #include "dlua_monitor.h"
 #include "dwl.h"
 
-#include "dlua_client.c"
-#include "dlua_monitor.c"
+/* #include "dlua_client.c" */
+/* #include "dlua_monitor.c" */
 
 void lua_autostart(lua_State *L) {
   if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {
