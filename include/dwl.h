@@ -111,6 +111,8 @@ void destroysessionlock(struct wl_listener *listener, void *data);
 void destroysessionmgr(struct wl_listener *listener, void *data);
 void destroykeyboardgroup(struct wl_listener *listener, void *data);
 Monitor *dirtomon(enum wlr_direction dir);
+void draw_cairo_client(Client *c);
+void draw_cairo(int w, int h, cairo_surface_t **c_surface, cairo_t **cr);
 void focusclient(Client *c, int lift);
 void focusmon(const Arg *arg);
 void focusortogglematchingscratch(const Arg *arg);

@@ -1,13 +1,17 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-/* enums */
 #include <stdint.h>
 #include <xkbcommon/xkbcommon.h>
 #include <wlr/util/box.h>
 #include <wayland-server.h>
 #include <wayland-util.h>
+#include <cairo/cairo.h>
+#include <wlr/types/wlr_buffer.h>
+#include <wlr/interfaces/wlr_buffer.h>
+#include <wlr/types/wlr_scene.h>
 
+/* enums */
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
 enum { XDGShell, LayerShell, X11 };                 /* client types */
 enum {
@@ -30,6 +34,12 @@ enum {
   NetLast
 }; /* EWMH atoms */
 #endif
+
+struct buffer {
+	struct wlr_buffer base;
+	cairo_surface_t *surface;
+	cairo_t *cairo;
+};
 
 typedef union {
   int i;
@@ -80,11 +90,12 @@ typedef struct {
   struct wl_listener configure;
   struct wl_listener set_hints;
 #endif
-  unsigned int bw;
+  unsigned int bw, bt;
   uint32_t tags;
   int isfloating, isurgent, isfullscreen, nokill;
   char scratchkey;
   uint32_t resize; /* configure serial of a pending resize */
+  struct wlr_scene_buffer *scene_buffer;
 } Client;
 
 typedef struct {
@@ -123,6 +134,7 @@ typedef struct {
   struct wl_listener destroy;
   struct wl_listener unmap;
   struct wl_listener surface_commit;
+  struct wlr_scene_buffer *scene_buffer;
 } LayerSurface;
 
 typedef struct {

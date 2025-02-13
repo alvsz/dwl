@@ -2,12 +2,35 @@
  * See LICENSE file for copyright and license details.
  */
 
+#define _GNU_SOURCE
+#define WLR_USE_UNSTABLE
+#include <cairo/cairo.h>
+#include <drm_fourcc.h>
+#include <getopt.h>
+#include <lauxlib.h>
+#include <libinput.h>
+#include <linux/input-event-codes.h>
+#include <lua.h>
+#include <lualib.h>
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <wayland-server-core.h>
+#include <wayland-util.h>
+#include <wlr/backend.h>
+#include <wlr/backend/libinput.h>
+#include <wlr/interfaces/wlr_buffer.h>
+#include <wlr/interfaces/wlr_keyboard.h>
+#include <wlr/render/allocator.h>
+#include <wlr/render/wlr_renderer.h>
+#include <wlr/types/wlr_alpha_modifier_v1.h>
+#include <wlr/types/wlr_buffer.h>
+#include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_power_management_v1.h>
@@ -105,7 +128,8 @@ void applybounds(Client *c, struct wlr_box *bbox) {
     client_get_size_hints(c, &max, &min);
     /* try to set size hints */
     c->geom.width = MAX(min.width + (2 * (int)c->bw), c->geom.width);
-    c->geom.height = MAX(min.height + (2 * (int)c->bw), c->geom.height);
+    c->geom.height =
+        MAX(min.height + ((int)c->bw + (int)c->bt), c->geom.height);
     /* Some clients set their max size to INT_MAX, which does not violate the
      * protocol but it's unnecesary, as they can set their max size to zero. */
     if (max.width > 0 &&
@@ -113,7 +137,7 @@ void applybounds(Client *c, struct wlr_box *bbox) {
       c->geom.width = MIN(max.width + (2 * c->bw), c->geom.width);
     if (max.height > 0 &&
         !(2 * c->bw > INT_MAX - max.height)) /* Checks for overflow */
-      c->geom.height = MIN(max.height + (2 * c->bw), c->geom.height);
+      c->geom.height = MIN(max.height + (c->bw + c->bt), c->geom.height);
   }
 
   if (c->geom.x >= bbox->x + bbox->width)
@@ -709,6 +733,10 @@ void createlayersurface(struct wl_listener *listener, void *data) {
           : scene_layer);
   l->scene->node.data = l->popups->node.data = l;
 
+  l->scene_buffer = wlr_scene_buffer_create(l->scene, NULL);
+  if (!l->scene_buffer)
+    printf("bugou foi tudo aqui na hora de criar o scene buffer\n");
+
   wl_list_insert(&l->mon->layers[layer_surface->pending.layer], &l->link);
   wlr_surface_send_enter(surface, layer_surface->output);
 }
@@ -841,6 +869,7 @@ void createnotify(struct wl_listener *listener, void *data) {
   c = toplevel->base->data = ecalloc(1, sizeof(*c));
   c->surface.xdg = toplevel->base;
   c->bw = borderpx;
+  c->bt = bordertitle;
 
   LISTEN(&toplevel->base->surface->events.commit, &c->commit, commitnotify);
   LISTEN(&toplevel->base->surface->events.map, &c->map, mapnotify);
@@ -1533,6 +1562,38 @@ void locksession(struct wl_listener *listener, void *data) {
   wlr_session_lock_v1_send_locked(session_lock);
 }
 
+static void buffer_destroy(struct wlr_buffer *buffer) {
+  struct buffer *p_buffer = wl_container_of(buffer, p_buffer, base);
+
+  cairo_surface_destroy(p_buffer->surface);
+  cairo_destroy(p_buffer->cairo);
+  free(p_buffer);
+}
+
+static void buffer_end_data_ptr_access(struct wlr_buffer *buffer) {}
+
+static bool buffer_begin_data_ptr_access(struct wlr_buffer *buffer,
+                                         uint32_t flags, void **data,
+                                         uint32_t *format, size_t *stride) {
+  struct buffer *p_buffer = wl_container_of(buffer, p_buffer, base);
+
+  if (flags & WLR_BUFFER_DATA_PTR_ACCESS_WRITE) {
+    return false;
+  }
+
+  *data = cairo_image_surface_get_data(p_buffer->surface);
+  *stride = cairo_image_surface_get_stride(p_buffer->surface);
+  *format = DRM_FORMAT_ARGB8888;
+
+  return true;
+}
+
+static const struct wlr_buffer_impl buffer_buffer_impl = {
+    .destroy = buffer_destroy,
+    .begin_data_ptr_access = buffer_begin_data_ptr_access,
+    .end_data_ptr_access = buffer_end_data_ptr_access,
+};
+
 void mapnotify(struct wl_listener *listener, void *data) {
   /* Called when the surface is mapped, or ready to display on-screen. */
   Client *p = NULL;
@@ -1569,6 +1630,10 @@ void mapnotify(struct wl_listener *listener, void *data) {
     c->border[i]->node.data = c;
   }
 
+  c->scene_buffer = wlr_scene_buffer_create(c->scene, NULL);
+  if (!c->scene_buffer)
+    printf("bugou foi tudo aqui na hora de criar o scene buffer\n");
+
   /* Initialize client geometry with room for border */
   client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
                           WLR_EDGE_RIGHT);
@@ -1590,6 +1655,8 @@ void mapnotify(struct wl_listener *listener, void *data) {
     applyrules(c);
   }
   printstatus();
+
+  draw_cairo_client(c);
 
 unset_fullscreen:
   m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
@@ -1874,8 +1941,9 @@ void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
                   uint32_t time) {
   struct timespec now;
 
-  if (surface != seat->pointer_state.focused_surface && sloppyfocus && time &&
-      c && !client_is_unmanaged(c))
+  if (
+      /* surface != seat->pointer_state.focused_surface &&  */
+      sloppyfocus && time && c && !client_is_unmanaged(c))
     focusclient(c, 0);
 
   /* If surface is NULL, clear pointer focus */
@@ -1994,6 +2062,51 @@ void requestmonstate(struct wl_listener *listener, void *data) {
   updatemons(NULL, NULL);
 }
 
+void draw_cairo_client(Client *c) {
+  struct buffer *b = calloc(1, sizeof(struct buffer));
+  cairo_t *cr;
+  cairo_surface_t *c_surface;
+  cairo_text_extents_t extents;
+  double x, y;
+
+  draw_cairo(c->geom.width, c->geom.height, &c_surface, &cr);
+
+  cairo_set_source_rgba(cr, 0, 0, 1, 0.5);
+  cairo_move_to(cr, 0, c->bt / 2);
+  cairo_line_to(cr, c->geom.width, c->bt / 2);
+  cairo_set_line_width(cr, c->bt);
+  cairo_stroke(cr);
+
+  cairo_text_extents(cr, client_get_title(c), &extents);
+  x = (c->geom.width - extents.width) / 2;
+  y = (c->bw + c->bt - extents.height) / 2 + extents.height;
+  cairo_move_to(cr, x, y);
+  cairo_set_source_rgb(cr, 0, 0, 0);
+  cairo_show_text(cr, client_get_title(c));
+
+  cairo_surface_flush(c_surface);
+
+  b->cairo = cr;
+  b->surface = c_surface;
+
+  wlr_buffer_init(&b->base, &buffer_buffer_impl, c->geom.width, c->geom.height);
+  wlr_scene_buffer_set_dest_size(c->scene_buffer, c->geom.width,
+                                 c->geom.height);
+  wlr_scene_buffer_set_buffer(c->scene_buffer, &b->base);
+  wlr_buffer_drop(&b->base);
+}
+
+void draw_cairo(int w, int h, cairo_surface_t **c_surface, cairo_t **cr) {
+  *c_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+  if (cairo_surface_status(*c_surface) != CAIRO_STATUS_SUCCESS) {
+    printf("bugou total na hora de criar a surface\n");
+  }
+  *cr = cairo_create(*c_surface);
+  if (!*cr)
+    printf("bugou na hora de criar o cr");
+  cairo_set_antialias(*cr, CAIRO_ANTIALIAS_BEST);
+}
+
 void resize(Client *c, struct wlr_box geo, int interact) {
   struct wlr_box *bbox;
   struct wlr_box clip;
@@ -2009,8 +2122,8 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 
   /* Update scene-graph, including borders */
   wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
-  wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
-  wlr_scene_rect_set_size(c->border[0], c->geom.width, c->bw);
+  wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bt);
+  wlr_scene_rect_set_size(c->border[0], c->geom.width, c->bt);
   wlr_scene_rect_set_size(c->border[1], c->geom.width, c->bw);
   wlr_scene_rect_set_size(c->border[2], c->bw, c->geom.height - 2 * c->bw);
   wlr_scene_rect_set_size(c->border[3], c->bw, c->geom.height - 2 * c->bw);
@@ -2020,10 +2133,12 @@ void resize(Client *c, struct wlr_box geo, int interact) {
                               c->bw);
 
   /* this is a no-op if size hasn't changed */
-  c->resize =
-      client_set_size(c, c->geom.width - 2 * c->bw, c->geom.height - 2 * c->bw);
+  c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
+                              c->geom.height - 2 * c->bw - c->bt);
   client_get_clip(c, &clip);
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
+
+  draw_cairo_client(c);
 }
 
 void run(char *startup_cmd) {
@@ -2711,6 +2826,9 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 
   dwl_ipc_send_client_closed_event(c);
 
+  /* cairo_destroy(c->cr); */
+  /* cairo_surface_destroy(c->c_surface); */
+
   wlr_scene_node_destroy(&c->scene->node);
   printstatus();
   motionnotify(0, NULL, 0, 0, 0, 0);
@@ -2911,6 +3029,7 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
               LayerSurface **pl, double *nx, double *ny) {
   struct wlr_scene_node *node, *pnode;
   struct wlr_surface *surface = NULL;
+  struct wlr_scene_surface *s;
   Client *c = NULL;
   LayerSurface *l = NULL;
   int layer;
@@ -2919,10 +3038,11 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
     if (!(node = wlr_scene_node_at(&layers[layer]->node, x, y, nx, ny)))
       continue;
 
-    if (node->type == WLR_SCENE_NODE_BUFFER)
-      surface =
-          wlr_scene_surface_try_from_buffer(wlr_scene_buffer_from_node(node))
-              ->surface;
+    if (node->type == WLR_SCENE_NODE_BUFFER) {
+      s = wlr_scene_surface_try_from_buffer(wlr_scene_buffer_from_node(node));
+      if (s)
+        surface = s->surface;
+    }
     /* Walk the tree to find a node that knows the client */
     for (pnode = node; pnode && !c; pnode = &pnode->parent->node)
       c = pnode->data;
