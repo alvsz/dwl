@@ -20,7 +20,7 @@ PKGS      = wlroots-0.18 wayland-server xkbcommon libinput lua $(XLIBS)
 DWLCFLAGS = `$(PKG_CONFIG) --cflags $(PKGS)` $(DWLCPPFLAGS) $(DWLDEVCFLAGS) $(CFLAGS)
 LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` -lm $(LIBS)
 
-all: cursor-shape-v1-protocol.h pointer-constraints-unstable-v1-protocol.h wlr-layer-shell-unstable-v1-protocol.h wlr-output-power-management-unstable-v1-protocol.h xdg-shell-protocol.h dwl-ipc-protocol.c dwl-ipc-protocol.h dwl-ipc-client-protocol.h dwl dwlcmd
+all: $(OBJ_DIR) cursor-shape-v1-protocol.h pointer-constraints-unstable-v1-protocol.h wlr-layer-shell-unstable-v1-protocol.h wlr-output-power-management-unstable-v1-protocol.h xdg-shell-protocol.h dwl-ipc-protocol.o dwl dwlcmd
 
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
@@ -30,13 +30,19 @@ ifneq ($(MODKEY),)
 MODKEYVAL = -DMODKEY=$(MODKEY)
 endif
 
-dwl: $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES)) 
+$(OBJ_DIR):
+	mkdir $(OBJ_DIR)
+
+dwl: dwl-ipc-protocol.o $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES)) 
 	$(CC) $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES)) $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) $(MODKEYVAL) -c $< -o $@
 
-dwlcmd: $(SRC_DIR)/dwlcmd.c $(SRC_DIR)/dwl-ipc-protocol.c $(INCLUDE_DIR)/dwl-ipc-client-protocol.h
+dwl-ipc-protocol.o: dwl-ipc-protocol.c dwl-ipc-protocol.h
+	$(CC) $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) $(MODKEYVAL) -c $(SRC_DIR)/$< -o $(OBJ_DIR)/$@
+
+dwlcmd: $(SRC_DIR)/dwlcmd.c dwl-ipc-protocol.c dwl-ipc-client-protocol.h
 	$(CC) $(SRC_DIR)/dwlcmd.c $(SRC_DIR)/dwl-ipc-protocol.c $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -lwayland-client -o $@
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
