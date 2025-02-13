@@ -3,8 +3,15 @@
 
 include config.mk
 
+SRC_DIR = ./src
+OBJ_DIR = ./obj
+INCLUDE_DIR = ./include
+
+SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+OBJ_FILES = $(SRC_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+
 # flags for compiling
-DWLCPPFLAGS = -I. -DWLR_USE_UNSTABLE -D_POSIX_C_SOURCE=200809L \
+DWLCPPFLAGS = -I$(INCLUDE_DIR) -DWLR_USE_UNSTABLE -D_POSIX_C_SOURCE=200809L \
 	-DVERSION=\"$(VERSION)\" $(XWAYLAND)
 DWLDEVCFLAGS = -g -pedantic -Wall -Wextra -Wdeclaration-after-statement \
 	-Wno-unused-parameter -Wshadow -Wunused-macros -Werror=strict-prototypes \
@@ -12,23 +19,25 @@ DWLDEVCFLAGS = -g -pedantic -Wall -Wextra -Wdeclaration-after-statement \
 	-Wfloat-conversion
 
 # CFLAGS / LDFLAGS
-PKGS      = wlroots-0.18 wayland-server xkbcommon libinput $(XLIBS)
+PKGS      = wlroots-0.18 wayland-server xkbcommon libinput lua $(XLIBS)
 DWLCFLAGS = `$(PKG_CONFIG) --cflags $(PKGS)` $(DWLCPPFLAGS) $(DWLDEVCFLAGS) $(CFLAGS)
-LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` -lm -llua $(LIBS)
+LDLIBS    = `$(PKG_CONFIG) --libs $(PKGS)` -lm $(LIBS)
+
+all: dwl dwlcmd
 
 ifneq ($(MODKEY),)
+	echo $(MODKEY)
 MODKEYVAL = -DMODKEY=$(MODKEY)
 endif
 
-all: dwl dwlcmd
-dwl: dwl.o util.o dwl-ipc-protocol.o
-	$(CC) dwl.o util.o dwl-ipc-protocol.o $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
-dwl.o: dwl.c client.h config.h config.mk cursor-shape-v1-protocol.h \
-	pointer-constraints-unstable-v1-protocol.h wlr-layer-shell-unstable-v1-protocol.h \
-	wlr-output-power-management-unstable-v1-protocol.h xdg-shell-protocol.h dwl-ipc-protocol.h
-util.o: util.c util.h
-dwlcmd: dwlcmd.c dwl-ipc-protocol.c dwl-ipc-client-protocol.h
-	$(CC) dwlcmd.c dwl-ipc-protocol.c $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -lwayland-client -o $@
+dwl: $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES))
+	$(CC) $(filter-out $(OBJ_DIR)/dwlcmd.o, $(OBJ_FILES)) $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -o $@
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) $(MODKEYVAL) -c $< -o $@
+
+dwlcmd: $(SRC_DIR)/dwlcmd.c $(SRC_DIR)/dwl-ipc-protocol.c $(INCLUDE_DIR)/dwl-ipc-client-protocol.h
+	$(CC) $(SRC_DIR)/dwlcmd.c $(SRC_DIR)/dwl-ipc-protocol.c $(DWLCFLAGS) $(LDFLAGS) $(LDLIBS) -lwayland-client -o $@
 
 # wayland-scanner is a tool which generates C headers and rigging for Wayland
 # protocols, which are specified in XML. wlroots requires you to rig these up
@@ -38,34 +47,33 @@ WAYLAND_PROTOCOLS = `$(PKG_CONFIG) --variable=pkgdatadir wayland-protocols`
 
 cursor-shape-v1-protocol.h:
 	$(WAYLAND_SCANNER) enum-header \
-		$(WAYLAND_PROTOCOLS)/staging/cursor-shape/cursor-shape-v1.xml $@
+		$(WAYLAND_PROTOCOLS)/staging/cursor-shape/cursor-shape-v1.xml $(INCLUDE_DIR)/$@
 pointer-constraints-unstable-v1-protocol.h:
 	$(WAYLAND_SCANNER) enum-header \
-		$(WAYLAND_PROTOCOLS)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml $@
+		$(WAYLAND_PROTOCOLS)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml $(INCLUDE_DIR)/$@
 wlr-layer-shell-unstable-v1-protocol.h:
 	$(WAYLAND_SCANNER) enum-header \
-		protocols/wlr-layer-shell-unstable-v1.xml $@
+		protocols/wlr-layer-shell-unstable-v1.xml $(INCLUDE_DIR)/$@
 wlr-output-power-management-unstable-v1-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
-		protocols/wlr-output-power-management-unstable-v1.xml $@
+		protocols/wlr-output-power-management-unstable-v1.xml $(INCLUDE_DIR)/$@
 xdg-shell-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
-		$(WAYLAND_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml $@
+		$(WAYLAND_PROTOCOLS)/stable/xdg-shell/xdg-shell.xml $(INCLUDE_DIR)/$@
 dwl-ipc-protocol.c:
 	$(WAYLAND_SCANNER) private-code \
-		protocols/dwl-ipc.xml $@
+		protocols/dwl-ipc.xml $(SRC_DIR)/$@
 dwl-ipc-protocol.h:
 	$(WAYLAND_SCANNER) server-header \
-		protocols/dwl-ipc.xml $@
+		protocols/dwl-ipc.xml $(INCLUDE_DIR)/$@
 dwl-ipc-client-protocol.h:
 	$(WAYLAND_SCANNER) client-header \
-		protocols/dwl-ipc.xml $@
-
+		protocols/dwl-ipc.xml $(INCLUDE_DIR)/$@
 
 config.h:
 	cp config.def.h $@
 clean:
-	rm -f dwl dwlcmd *.o *-protocol.h *-protocol.c
+	rm -f dwl dwlcmd obj/*.o $(INCLUDE_DIR)/*-protocol.h $(SRC_DIR)/*-protocol.c
 
 dist: clean
 	mkdir -p dwl-$(VERSION)
