@@ -1,14 +1,20 @@
+#ifndef XWAYLAND_HTETE
+#define XWAYLAND_HTETE
+
 #include <wlr/xwayland.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
-static void activatex11(struct wl_listener *listener, void *data);
-static void associatex11(struct wl_listener *listener, void *data);
-static void configurex11(struct wl_listener *listener, void *data);
-static void createnotifyx11(struct wl_listener *listener, void *data);
-static void dissociatex11(struct wl_listener *listener, void *data);
-static xcb_atom_t getatom(xcb_connection_t *xc, const char *name);
-static void sethints(struct wl_listener *listener, void *data);
-static void xwaylandready(struct wl_listener *listener, void *data);
-static struct wlr_xwayland *xwayland;
-static xcb_atom_t netatom[NetLast];
+void activatex11(struct wl_listener *listener, void *data);
+void associatex11(struct wl_listener *listener, void *data);
+void configurex11(struct wl_listener *listener, void *data);
+void createnotifyx11(struct wl_listener *listener, void *data);
+void dissociatex11(struct wl_listener *listener, void *data);
+xcb_atom_t getatom(xcb_connection_t *xc, const char *name);
+void sethints(struct wl_listener *listener, void *data);
+void xwaylandready(struct wl_listener *listener, void *data);
+
+struct wlr_xwayland **get_xwayland(void);
+xcb_atom_t *get_netatom(void);
+
+#endif // !XWAYLAND_HTETE

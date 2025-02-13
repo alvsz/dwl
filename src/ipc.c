@@ -5,28 +5,25 @@
  * You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#define _GNU_SOURCE
+
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <lauxlib.h>
-#include <lua.h>
-#include <stdbool.h>
 #include <wayland-server-core.h>
 #include <wayland-util.h>
 
 #include "dwl-ipc-protocol.h"
+#include "dwl.h"
 #include "ipc.h"
 #include "types.h"
-#include "util.h"
 
 struct dwl_ipc_client {
   struct wl_list link;
   struct wl_resource *resource;
   lua_State *L;
 };
-
-struct wl_list ipc_clients;
 
 static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
                      uint32_t id, const char *message) {
@@ -111,10 +108,11 @@ static void ipc_server_bind(struct wl_client *client, void *data,
 
   dwl_ipc_send_frame(c->resource);
 
-  wl_list_insert(&ipc_clients, &c->link);
+  wl_list_insert(get_ipc_clients(), &c->link);
 }
 
 bool lua_ipc_init(lua_State *L) {
+  struct wl_display *dpy = get_dpy();
   struct wl_global *ipc_global =
       wl_global_create(dpy, &dwl_ipc_interface, 1, L, ipc_server_bind);
 
@@ -131,7 +129,7 @@ void dwl_ipc_send_client_opened_event(Client *b) {
   char *str;
   int err;
 
-  wl_list_for_each(c, &ipc_clients, link) {
+  wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)b);
 
@@ -148,7 +146,7 @@ void dwl_ipc_send_client_closed_event(Client *b) {
   char *str;
   int err;
 
-  wl_list_for_each(c, &ipc_clients, link) {
+  wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)b);
 
@@ -165,7 +163,7 @@ void dwl_ipc_send_client_title_changed_event(Client *b) {
   char *str;
   int err;
 
-  wl_list_for_each(c, &ipc_clients, link) {
+  wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)b);
 
@@ -182,7 +180,7 @@ void dwl_ipc_send_client_state_changed_event(Client *b) {
   char *str;
   int err;
 
-  wl_list_for_each(c, &ipc_clients, link) {
+  wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)b);
 
@@ -194,10 +192,10 @@ void dwl_ipc_send_client_state_changed_event(Client *b) {
   }
 }
 
-void dwl_ipc_send_frame_event() {
+void dwl_ipc_send_frame_event(void) {
   struct dwl_ipc_client *c;
 
-  wl_list_for_each(c, &ipc_clients, link) {
+  wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource)
       dwl_ipc_send_frame(c->resource);
   }
@@ -208,7 +206,7 @@ void dwl_ipc_send_monitor_added_event(Monitor *m) {
   char *str;
   int err;
 
-  wl_list_for_each(c, &ipc_clients, link) {
+  wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)m);
 
@@ -225,7 +223,7 @@ void dwl_ipc_send_monitor_removed_event(Monitor *m) {
   char *str;
   int err;
 
-  wl_list_for_each(c, &ipc_clients, link) {
+  wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)m);
 

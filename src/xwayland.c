@@ -1,4 +1,11 @@
 #include "xwayland.h"
+#include "client.h"
+#include "dwl.h"
+#include "types.h"
+#include "util.h"
+
+struct wlr_xwayland *xwayland;
+xcb_atom_t netatom[NetLast];
 
 void activatex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, activate);
@@ -43,7 +50,7 @@ void createnotifyx11(struct wl_listener *listener, void *data) {
   c = xsurface->data = ecalloc(1, sizeof(*c));
   c->surface.xwayland = xsurface;
   c->type = X11;
-  c->bw = client_is_unmanaged(c) ? 0 : borderpx;
+  c->bw = client_is_unmanaged(c) ? 0 : *get_config_borderpx();
 
   /* Listen to the various events it can emit */
   LISTEN(&xsurface->events.associate, &c->associate, associatex11);
@@ -77,14 +84,14 @@ xcb_atom_t getatom(xcb_connection_t *xc, const char *name) {
 void sethints(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_hints);
   struct wlr_surface *surface = client_surface(c);
-  if (c == focustop(selmon))
+  if (c == focustop(get_selmon()))
     return;
 
   c->isurgent = xcb_icccm_wm_hints_get_urgency(c->surface.xwayland->hints);
   printstatus();
 
   if (c->isurgent && surface && surface->mapped)
-    client_set_border_color(c, urgentcolor);
+    client_set_border_color(c, get_config_urgentcolor());
 }
 
 void xwaylandready(struct wl_listener *listener, void *data) {
@@ -107,10 +114,11 @@ void xwaylandready(struct wl_listener *listener, void *data) {
   netatom[NetWMWindowTypeUtility] = getatom(xc, "_NET_WM_WINDOW_TYPE_UTILITY");
 
   /* assign the one and only seat */
-  wlr_xwayland_set_seat(xwayland, seat);
+  wlr_xwayland_set_seat(xwayland, get_seat());
 
   /* Set the default XWayland cursor to match the rest of dwl. */
-  if ((xcursor = wlr_xcursor_manager_get_xcursor(cursor_mgr, "default", 1)))
+  if ((xcursor =
+           wlr_xcursor_manager_get_xcursor(get_cursor_mgr(), "default", 1)))
     wlr_xwayland_set_cursor(
         xwayland, xcursor->images[0]->buffer, xcursor->images[0]->width * 4,
         xcursor->images[0]->width, xcursor->images[0]->height,
@@ -118,3 +126,6 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 
   xcb_disconnect(xc);
 }
+
+struct wlr_xwayland **get_xwayland(void) { return &xwayland; }
+xcb_atom_t *get_netatom(void) { return netatom; }

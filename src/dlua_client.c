@@ -3,14 +3,17 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "dlua.h"
+#include "client.h"
 #include "dlua_client.h"
+#include "dlua_monitor.h"
 #include "dwl.h"
+#include "util.h"
 
 int lua_clientindex(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   const char *key = luaL_checkstring(L, 2);
   const char *appid, *title;
+  const char *broken = get_broken();
   char str[2];
 
   if (strcmp(key, "app_id") == 0) {
@@ -89,6 +92,7 @@ int lua_clientnewindex(lua_State *L) {
   const char *value;
   LuaMonitor *lm;
   unsigned int i;
+  Monitor *selmon = get_selmon();
 
   if (strcmp(key, "tags") == 0) {
     i = luaL_checkinteger(L, 3);
@@ -149,6 +153,7 @@ int lua_clientresize(lua_State *L) {
 int lua_clientsettags(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   uint32_t tag = (uint32_t)luaL_checkinteger(L, 2);
+  Monitor *selmon = get_selmon();
 
   if ((tag & TAGMASK) == 0)
     return 0;

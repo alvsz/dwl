@@ -1,5 +1,12 @@
 /* See LICENSE.dwm file for copyright and license details. */
 
+#ifndef UTIL_H
+#define UTIL_H
+
+#include <stddef.h>
+
+#include "pertag.h"
+
 /* macros */
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
@@ -20,3 +27,6 @@
 void die(const char *fmt, ...);
 void *ecalloc(size_t nmemb, size_t size);
 int fd_set_nonblock(int fd);
+
+#endif // !UTIL_H
+

@@ -1,16 +1,18 @@
+#define _GNU_SOURCE
+
 #include <lauxlib.h>
 #include <libinput.h>
 #include <lua.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "dlua.h"
 #include "dlua_client.h"
 #include "dlua_monitor.h"
 #include "dwl.h"
-
-/* #include "dlua_client.c" */
-/* #include "dlua_monitor.c" */
+#include "ipc.h"
+#include "types.h"
 
 void lua_autostart(lua_State *L) {
   if (lua_getconfig(L, "autostart", LUA_TFUNCTION)) {
@@ -22,9 +24,9 @@ void lua_autostart(lua_State *L) {
 int lua_getclient(lua_State *L) {
   Client *c;
   const char *key = luaL_checkstring(L, 1);
-  long long int i = strtoll(key, NULL, 10);
+  unsigned long long int i = strtoll(key, NULL, 10);
 
-  wl_list_for_each(c, &clients, link) {
+  wl_list_for_each(c, get_clients(), link) {
     if (i == (uintptr_t)c) {
       lua_createclient(L, c);
       return 1;
@@ -76,9 +78,9 @@ int lua_getconfigfield(lua_State *L, const char *key, int t) {
 int lua_getmonitor(lua_State *L) {
   Monitor *m;
   const char *key = luaL_checkstring(L, 1);
-  long long int i = strtoll(key, NULL, 10);
+  unsigned long long int i = strtoll(key, NULL, 10);
 
-  wl_list_for_each(m, &mons, link) {
+  wl_list_for_each(m, get_mons(), link) {
     if (i == (uintptr_t)m) {
       lua_createmonitor(L, m);
       return 1;
@@ -95,7 +97,7 @@ int lua_getmonitors(lua_State *L) {
 
   lua_newtable(L);
 
-  wl_list_for_each(m, &mons, link) {
+  wl_list_for_each(m, get_mons(), link) {
     lua_pushinteger(L, i);
     lua_createmonitor(L, m);
     lua_rawset(L, -3);
@@ -105,12 +107,12 @@ int lua_getmonitors(lua_State *L) {
 }
 
 int lua_getselmon(lua_State *L) {
-  lua_createmonitor(L, selmon);
+  lua_createmonitor(L, get_selmon());
   return 1;
 }
 
 int lua_getfocusedclient(lua_State *L) {
-  lua_createclient(L, focustop(selmon));
+  lua_createclient(L, focustop(get_selmon()));
   return 1;
 }
 
@@ -130,7 +132,7 @@ void lua_inputconfig(lua_State *L) {
   lua_setlefthanded(L);
 }
 
-static void lua_loadtheme(lua_State *L) {
+void lua_loadtheme(lua_State *L) {
   const char *val;
   unsigned int tmp;
 
@@ -141,42 +143,42 @@ static void lua_loadtheme(lua_State *L) {
     val = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    parsecolor(val, rootcolor);
+    parsecolor(val, get_config_rootcolor());
   }
 
   if (lua_getconfigfield(L, "normal", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    parsecolor(val, bordercolor);
+    parsecolor(val, get_config_bordercolor());
   }
 
   if (lua_getconfigfield(L, "focus", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    parsecolor(val, focuscolor);
+    parsecolor(val, get_config_focuscolor());
   }
 
   if (lua_getconfigfield(L, "urgent", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    parsecolor(val, urgentcolor);
+    parsecolor(val, get_config_urgentcolor());
   }
 
   if (lua_getconfigfield(L, "float", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
     lua_pop(L, 1);
 
-    parsecolor(val, floatcolor);
+    parsecolor(val, get_config_floatcolor());
   }
 
   if (lua_getconfigfield(L, "border_width", LUA_TNUMBER)) {
     tmp = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    borderpx = tmp;
+    *get_config_borderpx() = tmp;
   }
 }
 
@@ -251,9 +253,9 @@ void lua_setaccelprofile(lua_State *L) {
     lua_pop(L, 1);
 
     if (strcmp(val, "FLAT") == 0)
-      accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
+      *get_config_accel_profile() = LIBINPUT_CONFIG_ACCEL_PROFILE_FLAT;
     else if (strcmp(val, "ADAPTIVE") == 0)
-      accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
+      *get_config_accel_profile() = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
   }
 }
 
@@ -264,23 +266,24 @@ void lua_setaccelspeed(lua_State *L) {
     val = lua_tonumber(L, -1);
     lua_pop(L, 1);
 
-    accel_speed = val;
+    *get_config_accel_speed() = val;
   }
 }
 
 void lua_setclickmethod(lua_State *L) {
   const char *val;
+  enum libinput_config_click_method *click_method = get_config_click_method();
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_CLICK_METHOD", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
     lua_pop(L, 1);
 
     if (strcmp(val, "NONE") == 0)
-      click_method = LIBINPUT_CONFIG_CLICK_METHOD_NONE;
+      *click_method = LIBINPUT_CONFIG_CLICK_METHOD_NONE;
     else if (strcmp(val, "BUTTON_AREAS") == 0)
-      click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+      *click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
     else if (strcmp(val, "CLICKFINGER") == 0)
-      click_method = LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
+      *click_method = LIBINPUT_CONFIG_CLICK_METHOD_CLICKFINGER;
   }
 }
 
@@ -292,7 +295,7 @@ void lua_setdwt(lua_State *L) {
     val = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    disable_while_typing = val;
+    *get_config_disable_while_typing() = val;
   }
 }
 
@@ -303,7 +306,7 @@ void lua_setlefthanded(lua_State *L) {
     val = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    left_handed = val;
+    *get_config_left_handed() = val;
   }
 }
 
@@ -314,7 +317,7 @@ void lua_setmiddleemul(lua_State *L) {
     val = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    middle_button_emulation = val;
+    *get_config_middle_button_emulation() = val;
   }
 }
 
@@ -325,7 +328,7 @@ void lua_setnaturalscroll(lua_State *L) {
     val = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    natural_scrolling = val;
+    *get_config_natural_scrolling() = val;
   }
 }
 
@@ -336,7 +339,7 @@ void lua_settap(lua_State *L) {
     val = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    tap_to_click = val;
+    *get_config_tap_to_click() = val;
   }
 }
 
@@ -347,25 +350,27 @@ void lua_settapanddrag(lua_State *L) {
     val = lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    tap_to_click = val;
+    *get_config_tap_to_click() = val;
   }
 }
 
 void lua_setscrollmethod(lua_State *L) {
   const char *val;
+  enum libinput_config_scroll_method *scroll_method =
+      get_config_scroll_method();
 
   if (lua_getconfigfield(L, "LIBINPUT_DEFAULT_SCROLL_METHOD", LUA_TSTRING)) {
     val = lua_tostring(L, -1);
     lua_pop(L, 1);
 
     if (strcmp(val, "NO_SCROLL") == 0)
-      scroll_method = LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
+      *scroll_method = LIBINPUT_CONFIG_SCROLL_NO_SCROLL;
     else if (strcmp(val, "2FG") == 0)
-      scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
+      *scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
     else if (strcmp(val, "EDGE") == 0)
-      scroll_method = LIBINPUT_CONFIG_SCROLL_EDGE;
+      *scroll_method = LIBINPUT_CONFIG_SCROLL_EDGE;
     else if (strcmp(val, "ON_BUTTON_DOWN") == 0)
-      scroll_method = LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN;
+      *scroll_method = LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN;
   }
 }
 
@@ -384,7 +389,7 @@ int lua_openmodule(lua_State *L) {
   return 1;
 }
 
-void lua_setup(void) {
+void lua_setup(lua_State **L) {
   const luaL_Reg client_metatable[] = {
       {"kill", lua_clientkill},
       {"resize", lua_clientresize},
@@ -406,36 +411,36 @@ void lua_setup(void) {
       {"toggle_tags", lua_monitortoggletags},
       {NULL, NULL}};
 
-  H = luaL_newstate();
-  luaL_openlibs(H);
+  *L = luaL_newstate();
+  luaL_openlibs(*L);
 
   fprintf(stderr, "lua criado\n");
 
-  luaL_requiref(H, "dwl", lua_openmodule, 1);
-  lua_setglobal(H, "dwl");
+  luaL_requiref(*L, "dwl", lua_openmodule, 1);
+  lua_setglobal(*L, "dwl");
 
-  luaL_newmetatable(H, "Client");
+  luaL_newmetatable(*L, "Client");
 
-  lua_pushcfunction(H, lua_clientindex);
-  lua_setfield(H, -2, "__index");
-  luaL_setfuncs(H, client_metatable, 0);
+  lua_pushcfunction(*L, lua_clientindex);
+  lua_setfield(*L, -2, "__index");
+  luaL_setfuncs(*L, client_metatable, 0);
 
-  lua_pushcfunction(H, lua_clientnewindex);
-  lua_setfield(H, -2, "__newindex");
+  lua_pushcfunction(*L, lua_clientnewindex);
+  lua_setfield(*L, -2, "__newindex");
 
-  luaL_newmetatable(H, "Monitor");
+  luaL_newmetatable(*L, "Monitor");
 
-  lua_pushcfunction(H, lua_monitorindex);
-  lua_setfield(H, -2, "__index");
-  luaL_setfuncs(H, monitor_metatable, 0);
+  lua_pushcfunction(*L, lua_monitorindex);
+  lua_setfield(*L, -2, "__index");
+  luaL_setfuncs(*L, monitor_metatable, 0);
 
-  lua_pushcfunction(H, lua_monitornewindex);
-  lua_setfield(H, -2, "__newindex");
+  lua_pushcfunction(*L, lua_monitornewindex);
+  lua_setfield(*L, -2, "__newindex");
 
-  lua_openconfigfile(H);
+  lua_openconfigfile(*L);
 
-  lua_loadtheme(H);
-  lua_ipc_init(H);
+  lua_loadtheme(*L);
+  lua_ipc_init(*L);
 }
 
 void lua_setupenv(lua_State *L) {

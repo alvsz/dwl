@@ -4,6 +4,10 @@
 /* enums */
 #include <stdint.h>
 #include <xkbcommon/xkbcommon.h>
+#include <wlr/util/box.h>
+#include <wayland-server.h>
+#include <wayland-util.h>
+
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
 enum { XDGShell, LayerShell, X11 };                 /* client types */
 enum {
