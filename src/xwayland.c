@@ -79,7 +79,7 @@ void dissociatex11(struct wl_listener *listener, void *data) {
 void sethints(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_hints);
   struct wlr_surface *surface = client_surface(c);
-  if (c == focustop(get_selmon()))
+  if (c == focustop(get_selmon()) || !c->surface.xwayland->hints)
     return;
 
   c->isurgent = xcb_icccm_wm_hints_get_urgency(c->surface.xwayland->hints);
