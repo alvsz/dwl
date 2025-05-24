@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_power_management_v1.h>
@@ -2974,6 +2975,7 @@ void zoom(const Arg *arg) {
 const char *get_broken(void) { return broken; }
 struct wl_list *get_clients(void) { return &clients; }
 struct wl_list *get_ipc_clients(void) { return &ipc_clients; }
+lua_State *get_lua(void) { return H; }
 int *get_enablegaps(void) { return &enablegaps; }
 struct wl_display *get_dpy(void) { return dpy; }
 struct wl_list *get_mons(void) { return &mons; }

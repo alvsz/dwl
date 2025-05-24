@@ -37,22 +37,21 @@ static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
   top = lua_gettop(L);
 
   lua_pushboolean(L, true);
-  lua_setglobal(L, "FROM_KIWMIC");
+  lua_setglobal(L, "FROM_DWLCMD");
 
   if (luaL_dostring(L, message)) {
     const char *error = lua_tostring(L, -1);
-    /* wlr_log(WLR_ERROR, "Error running IPC command: %s", error); */
     dwl_command_send_done(command_resource, DWL_COMMAND_ERROR_FAILURE, error);
     lua_pop(L, 1);
 
     lua_pushboolean(L, false);
-    lua_setglobal(L, "FROM_KIWMIC");
+    lua_setglobal(L, "FROM_DWLCMD");
 
     return;
   }
 
   lua_pushboolean(L, false);
-  lua_setglobal(L, "FROM_KIWMIC");
+  lua_setglobal(L, "FROM_DWLCMD");
 
   results = top - lua_gettop(L);
 
@@ -64,7 +63,6 @@ static void ipc_eval(struct wl_client *client, struct wl_resource *resource,
 
     if (lua_pcall(L, 1, 1, 0)) {
       const char *error = lua_tostring(L, -1);
-      /* wlr_log(WLR_ERROR, "Error running IPC command: %s", error); */
       dwl_command_send_done(command_resource, DWL_COMMAND_ERROR_FAILURE, error);
       lua_pop(L, 1);
       return;
@@ -117,7 +115,6 @@ bool lua_ipc_init(lua_State *L) {
       wl_global_create(dpy, &dwl_ipc_interface, 1, L, ipc_server_bind);
 
   if (ipc_global) {
-    /* wlr_log(WLR_ERROR, "Failed to create IPC global"); */
     return false;
   }
 

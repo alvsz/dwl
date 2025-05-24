@@ -204,6 +204,7 @@ void zoom(const Arg *arg);
 const char *get_broken(void);
 struct wl_list *get_clients(void);
 struct wl_list *get_ipc_clients(void);
+lua_State *get_lua(void);
 struct wlr_xcursor_manager *get_cursor_mgr(void);
 struct wl_display *get_dpy(void);
 int *get_enablegaps(void);

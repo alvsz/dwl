@@ -8,7 +8,8 @@ static const Key keys[] = {
     { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_L,            spawn,              SHCMD("loginctl lock-session") },
 
     /* -------- bar -------- */
-    { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("agsv1 -t bar-0") },
+    { MODKEY,                                            XKB_KEY_p,            lua_spawn,             LUACMD("agsv1 -t bar-0") },
+    // { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("agsv1 -t bar-0") },
     // { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("eww open bar-wayland --toggle") },
     // { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_P,            spawn,              SHCMD("pkill eww; eww daemon") },
 

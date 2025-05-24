@@ -5,6 +5,8 @@
 #include <lua.h>
 #include <lualib.h>
 
+#include "types.h"
+
 void lua_autostart(lua_State *L);
 int lua_getclient(lua_State *L);
 int lua_getconfig(lua_State *L, const char *key, int t);
@@ -30,6 +32,7 @@ void lua_settapanddrag(lua_State *L);
 void lua_setscrollmethod(lua_State *L);
 void lua_setup(lua_State **L);
 void lua_setupenv(lua_State *L);
+void lua_spawn(const Arg *arg);
 int lua_quit(lua_State *L);
 
 #endif

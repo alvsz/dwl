@@ -461,6 +461,16 @@ void lua_setupenv(lua_State *L) {
   }
 }
 
+void lua_spawn(const Arg *arg) {
+  lua_State *L = get_lua();
+  char **cmd = (char **)arg->v;
+
+  if (luaL_dostring(L, cmd[0])) {
+    const char *error = lua_tostring(L, -1);
+    fprintf(stderr, "erro no lua: %s\n", error);
+  }
+}
+
 int lua_quit(lua_State *L) {
   quit(NULL);
   return 0;
