@@ -178,7 +178,6 @@ void applyrules(Client *c) {
   const Rule *r;
   Monitor *mon = selmon, *m;
 
-  c->isfloating = client_is_float_type(c);
   c->scratchkey = 0;
   c->nokill = 0;
   appid = client_get_appid(c);
@@ -198,6 +197,8 @@ void applyrules(Client *c) {
       }
     }
   }
+
+  c->isfloating |= client_is_float_type(c);
   setmon(c, mon, newtags);
 }
 
