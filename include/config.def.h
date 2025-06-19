@@ -20,7 +20,7 @@ static float focuscolor[]            = COLOR(0x005577ff);
 static float urgentcolor[]           = COLOR(0xff0000ff);
 static float floatcolor[]            = COLOR(0xff0000ff);
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
-static const float fullscreen_bg[]         = {0.1f, 0.1f, 0.1f, 1.0f}; /* You can also use glsl colors */
+static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
 
 /* logging */
 static int log_level = WLR_ERROR;
