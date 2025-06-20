@@ -115,7 +115,7 @@ static enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TAP_MAP_
 
 /* commands */
 static const char *termcmd[] = {"alacritty", NULL};
-static const char *menucmd[] = {"agsv1", "-t", "applauncher", NULL};
+static const char *menucmd[] = {"astal", "-t", "AppMenu", NULL};
 
 /* named scratchpads - First arg only serves to match against key in rules*/
 static const char *scratchcmd[] = { "t", APP_TERM, "--class", CLASS_SP, "-t", TITLE_SP, NULL };

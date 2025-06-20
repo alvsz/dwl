@@ -8,14 +8,10 @@ static const Key keys[] = {
     { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_L,            spawn,              SHCMD("loginctl lock-session") },
 
     /* -------- bar -------- */
-    { MODKEY,                                            XKB_KEY_p,            lua_spawn,             LUACMD("agsv1 -t bar-0") },
-    // { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("agsv1 -t bar-0") },
-    // { MODKEY,                                            XKB_KEY_p,            spawn,              SHCMD("eww open bar-wayland --toggle") },
-    // { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_P,            spawn,              SHCMD("pkill eww; eww daemon") },
+    { MODKEY,                                            XKB_KEY_p,            lua_spawn,          LUACMD("toggle_bar") },
 
     { MODKEY,                                            XKB_KEY_q,            killclient,         {0} },
     { MODKEY | WLR_MODIFIER_SHIFT | WLR_MODIFIER_CTRL,   XKB_KEY_Q,            quit,               {0} },
-    // { MODKEY | WLR_MODIFIER_SHIFT,                       XKB_KEY_Q,            lua_reloadconfig,   {0} },
 
     /* -------- layouts -------- */
     { MODKEY,                                            XKB_KEY_u,            setlayout,          {.v = &layouts[0]} },
@@ -110,9 +106,7 @@ static const Key keys[] = {
     { MODKEY,                                            XKB_KEY_f,                  spawn,          SHCMD("$EXPLORER") },
     { MODKEY,                                            XKB_KEY_b,                  spawn,          SHCMD("$BROWSER") },
     { MODKEY,                                            XKB_KEY_e,                  spawn,          SHCMD("$EMAIL") },
-    { MODKEY,                                            XKB_KEY_m,                  spawn,          SHCMD("rofi -show emoji -emoji-mode copy") },
-    // { MODKEY,                                            XKB_KEY_v,                  spawn,          SHCMD("CM_LAUNCHER=rofi clipmenu -i ") },
-    // { 0,                                                 XF86XK_Calculator,          spawn,          SHCMD("$CALCULATOR") },
+    { 0,                                                 XF86XK_Calculator,          spawn,          SHCMD("$CALCULATOR") },
     { 0,                                                 XKB_KEY_Print,              spawn,          SHCMD("screenshot") },
     { WLR_MODIFIER_SHIFT,                                XKB_KEY_Print,              spawn,          SHCMD("screenshot select") },
     { WLR_MODIFIER_CTRL,                                 XKB_KEY_Print,              spawn,          SHCMD("screenshot pixel") },
