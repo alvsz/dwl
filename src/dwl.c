@@ -2178,18 +2178,18 @@ void setgaps(int oh, int ov, int ih, int iv) {
   arrange(selmon);
 }
 
-void setlayout(const Arg *arg) {
-  if (!selmon)
+void setlayout(const Arg *arg) { setlayoutmonitor(selmon, arg); }
+
+void setlayoutmonitor(Monitor *m, const Arg *arg) {
+  if (!m)
     return;
-  if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
-    selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag] ^= 1;
+  if (!arg || !arg->v || arg->v != m->lt[m->sellt])
+    m->sellt = m->pertag->sellts[m->pertag->curtag] ^= 1;
   if (arg && arg->v)
-    selmon->lt[selmon->sellt] =
-        selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt] =
-            (Layout *)arg->v;
-  strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol,
-          LENGTH(selmon->ltsymbol));
-  arrange(selmon);
+    m->lt[m->sellt] = m->pertag->ltidxs[m->pertag->curtag][m->sellt] =
+        (Layout *)arg->v;
+  strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, LENGTH(m->ltsymbol));
+  arrange(m);
   printstatus();
 }
 

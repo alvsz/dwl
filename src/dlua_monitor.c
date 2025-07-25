@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "config.h"
 #include "dlua_client.h"
 #include "dlua_monitor.h"
 #include "dwl.h"
@@ -157,6 +158,16 @@ int lua_monitorsetgapsdefault(lua_State *L) {
   SETGAPS(lm, get_config_gappoh(), get_config_gappov(), get_config_gappih(),
           get_config_gappiv());
   arrange(lm->m);
+  return 0;
+}
+
+int lua_monitorsetlayout(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  unsigned int i = (int)luaL_checknumber(L, 2);
+
+  if (i < LENGTH(layouts))
+    setlayoutmonitor(lm->m, &(const Arg){.v = &layouts[i]});
+
   return 0;
 }
 

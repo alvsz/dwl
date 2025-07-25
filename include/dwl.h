@@ -63,8 +63,8 @@
 void applybounds(Client *c, struct wlr_box *bbox);
 void applyrules(Client *c);
 void arrange(Monitor *m);
-void arrangelayer(Monitor *m, struct wl_list *list,
-                  struct wlr_box *usable_area, int exclusive);
+void arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area,
+                  int exclusive);
 void arrangelayers(Monitor *m);
 void axisnotify(struct wl_listener *listener, void *data);
 void buttonpress(struct wl_listener *listener, void *data);
@@ -139,18 +139,16 @@ void mapnotify(struct wl_listener *listener, void *data);
 void maximizenotify(struct wl_listener *listener, void *data);
 void monocle(Monitor *m);
 void motionabsolute(struct wl_listener *listener, void *data);
-void motionnotify(uint32_t time, struct wlr_input_device *device,
-                  double sx, double sy, double sx_unaccel,
-                  double sy_unaccel);
+void motionnotify(uint32_t time, struct wlr_input_device *device, double sx,
+                  double sy, double sx_unaccel, double sy_unaccel);
 void motionrelative(struct wl_listener *listener, void *data);
 void moveresize(const Arg *arg);
 void outputmgrapply(struct wl_listener *listener, void *data);
-void outputmgrapplyortest(struct wlr_output_configuration_v1 *config,
-                          int test);
+void outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test);
 void outputmgrtest(struct wl_listener *listener, void *data);
 void parsecolor(const char *val, float color[4]);
-void pointerfocus(Client *c, struct wlr_surface *surface, double sx,
-                  double sy, uint32_t time);
+void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
+                  uint32_t time);
 void printstatus(void);
 void powermgrsetmode(struct wl_listener *listener, void *data);
 void quit(const Arg *arg);
@@ -167,6 +165,7 @@ void setfullscreen(Client *c, int fullscreen);
 void setgamma(struct wl_listener *listener, void *data);
 void setgaps(int oh, int ov, int ih, int iv);
 void setlayout(const Arg *arg);
+void setlayoutmonitor(Monitor *m, const Arg *arg);
 void setmfact(const Arg *arg);
 void setmon(Client *c, Monitor *m, uint32_t newtags);
 void setpsel(struct wl_listener *listener, void *data);
@@ -197,8 +196,8 @@ void viewmonitor(Monitor *m, const Arg *arg);
 void virtualkeyboard(struct wl_listener *listener, void *data);
 void virtualpointer(struct wl_listener *listener, void *data);
 Monitor *xytomon(double x, double y);
-void xytonode(double x, double y, struct wlr_surface **psurface,
-              Client **pc, LayerSurface **pl, double *nx, double *ny);
+void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
+              LayerSurface **pl, double *nx, double *ny);
 void zoom(const Arg *arg);
 
 const char *get_broken(void);

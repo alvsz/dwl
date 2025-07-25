@@ -13,6 +13,7 @@ int lua_monitorindex(lua_State *L);
 int lua_monitornewindex(lua_State *L);
 int lua_monitorsetgaps(lua_State *L);
 int lua_monitorsetgapsdefault(lua_State *L);
+int lua_monitorsetlayout(lua_State *L);
 int lua_monitorsetmfact(lua_State *L);
 int lua_monitorsettags(lua_State *L);
 int lua_monitorsetnmaster(lua_State *L);

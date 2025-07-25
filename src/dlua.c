@@ -404,6 +404,7 @@ void lua_setup(lua_State **L) {
       {"get_clients", lua_getclients},
       {"set_gaps", lua_monitorsetgaps},
       {"set_default_gaps", lua_monitorsetgapsdefault},
+      {"set_layout", lua_monitorsetlayout},
       {"set_mfact", lua_monitorsetmfact},
       {"set_tags", lua_monitorsettags},
       {"set_nmaster", lua_monitorsetnmaster},
