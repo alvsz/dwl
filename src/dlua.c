@@ -34,7 +34,7 @@ int lua_getclient(lua_State *L) {
   }
 
   fprintf(stderr, "o endereço %llu não foi encontrado\n", i);
-  return 0;
+  return luaL_error(L, "o endereço %llu não foi encontrado", i);
 }
 
 int lua_getconfig(lua_State *L, const char *key, int t) {
@@ -88,7 +88,7 @@ int lua_getmonitor(lua_State *L) {
   }
 
   fprintf(stderr, "o endereço %llu não foi encontrado\n", i);
-  return 0;
+  return luaL_error(L, "o endereço %llu não foi encontrado", i);
 }
 
 int lua_getmonitors(lua_State *L) {

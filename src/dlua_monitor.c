@@ -167,6 +167,10 @@ int lua_monitorsetlayout(lua_State *L) {
 
   if (i < LENGTH(layouts))
     setlayoutmonitor(lm->m, &(const Arg){.v = &layouts[i]});
+  else
+    return luaL_error(
+        L, "índice de layout inválido: %d. O índice deve estar entre 0 e %d", i,
+        LENGTH(layouts) - 1);
 
   return 0;
 }

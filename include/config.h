@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "dwl.h"
+#include "dlua.h"
 
 #define COLOR(hex)    { ((hex >> 24) & 0xFF) / 255.0f, \
                         ((hex >> 16) & 0xFF) / 255.0f, \
