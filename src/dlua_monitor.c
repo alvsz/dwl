@@ -163,7 +163,7 @@ int lua_monitorsetgapsdefault(lua_State *L) {
 
 int lua_monitorsetlayout(lua_State *L) {
   LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
-  unsigned int i = (int)luaL_checknumber(L, 2);
+  unsigned int i = (int)luaL_checkinteger(L, 2);
 
   if (i < LENGTH(layouts))
     setlayoutmonitor(lm->m, &(const Arg){.v = &layouts[i]});
