@@ -231,3 +231,20 @@ void dwl_ipc_send_monitor_removed_event(Monitor *m) {
     }
   }
 }
+
+void dwl_ipc_send_monitor_layout_changed_event(Monitor *m) {
+  struct dwl_ipc_client *c;
+  char *str;
+  int err;
+
+  wl_list_for_each(c, get_ipc_clients(), link) {
+    if (c->resource) {
+      err = asprintf(&str, "%lu", (uintptr_t)m);
+
+      if (err == -1)
+        fprintf(stderr, "erro no asprintf");
+
+      dwl_ipc_send_monitor_layout_changed(c->resource, str);
+    }
+  }
+}

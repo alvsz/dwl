@@ -1124,6 +1124,7 @@ void focusclient(Client *c, int lift) {
     wl_list_insert(&fstack, &c->flink);
     selmon = c->mon;
     c->isurgent = 0;
+    dwl_ipc_send_client_state_changed_event(c);
     client_restack_surface(c);
 
     /* Don't change border color if there is an exclusive focus or we are
@@ -1154,6 +1155,8 @@ void focusclient(Client *c, int lift) {
     }
   }
   printstatus();
+  dwl_ipc_send_client_state_changed_event(c);
+  dwl_ipc_send_client_state_changed_event(old_c);
 
   if (!c) {
     /* With no client, all we have left is to clear focus */
@@ -2137,6 +2140,7 @@ void setfloating(Client *c, int floating) {
     }
   arrange(c->mon);
   printstatus();
+  dwl_ipc_send_client_state_changed_event(c);
 }
 
 void setfullscreen(Client *c, int fullscreen) {
@@ -2159,6 +2163,7 @@ void setfullscreen(Client *c, int fullscreen) {
   }
   arrange(c->mon);
   printstatus();
+  dwl_ipc_send_client_state_changed_event(c);
 }
 
 void setgamma(struct wl_listener *listener, void *data) {
@@ -2191,6 +2196,7 @@ void setlayoutmonitor(Monitor *m, const Arg *arg) {
   strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, LENGTH(m->ltsymbol));
   arrange(m);
   printstatus();
+  dwl_ipc_send_monitor_layout_changed_event(m);
 }
 
 /* arg > 1.0 will set mfact absolutely */
@@ -2839,6 +2845,7 @@ void urgent(struct wl_listener *listener, void *data) {
 
   c->isurgent = 1;
   printstatus();
+  dwl_ipc_send_client_state_changed_event(c);
 
   if (client_surface(c)->mapped)
     client_set_border_color(c, urgentcolor);
