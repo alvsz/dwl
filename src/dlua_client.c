@@ -190,6 +190,7 @@ int lua_clientserialize(lua_State *L) {
   json_object_object_add(json, "fullscreen",
                          json_object_new_boolean(c->isfullscreen));
   json_object_object_add(json, "nokill", json_object_new_boolean(c->nokill));
+  json_object_object_add(json, "scratchkey", json_object_new_string(str));
 
   json_object_object_add(json, "address", json_object_new_int64((uintptr_t)c));
   json_object_object_add(json, "monitor",
