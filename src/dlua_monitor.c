@@ -1,3 +1,5 @@
+#include <json-c/json.h>
+#include <json-c/json_object.h>
 #include <lauxlib.h>
 #include <lua.h>
 #include <stdint.h>
@@ -138,6 +140,42 @@ int lua_monitornewindex(lua_State *L) {
   }
 
   return 0;
+}
+
+int lua_monitorserialize(lua_State *L) {
+  LuaMonitor *lm = (LuaMonitor *)luaL_checkudata(L, 1, "Monitor");
+  Monitor *m = lm->m;
+  struct json_object *json = json_object_new_object();
+  struct json_object *gaps, *geom;
+
+  json_object_object_add(json, "layout", json_object_new_string(m->ltsymbol));
+  json_object_object_add(json, "focused",
+                         json_object_new_boolean(m == get_selmon()));
+  json_object_object_add(json, "seltags",
+                         json_object_new_int(m->tagset[m->seltags]));
+  json_object_object_add(json, "name", json_object_new_string(m->name));
+  json_object_object_add(json, "mfact", json_object_new_double(m->mfact));
+  json_object_object_add(json, "nmaster", json_object_new_int(m->nmaster));
+  json_object_object_add(json, "scale", json_object_new_double(m->scale));
+
+  gaps = json_object_new_object();
+  json_object_object_add(gaps, "iv", json_object_new_int(m->gappiv));
+  json_object_object_add(gaps, "ih", json_object_new_int(m->gappih));
+  json_object_object_add(gaps, "ov", json_object_new_int(m->gappov));
+  json_object_object_add(gaps, "oh", json_object_new_int(m->gappoh));
+  json_object_object_add(json, "gaps", gaps);
+
+  geom = json_object_new_object();
+  json_object_object_add(geom, "x", json_object_new_double(m->m.x));
+  json_object_object_add(geom, "y", json_object_new_double(m->m.y));
+  json_object_object_add(json, "geom", geom);
+
+  json_object_object_add(json, "address", json_object_new_int64((uintptr_t)m));
+
+  lua_pushstring(L, json_object_to_json_string(json));
+
+  json_object_put(json);
+  return 1;
 }
 
 int lua_monitorsetgaps(lua_State *L) {

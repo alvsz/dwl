@@ -1,3 +1,5 @@
+#include <json-c/json.h>
+#include <json-c/json_object.h>
 #include <lauxlib.h>
 #include <lua.h>
 #include <stdint.h>
@@ -148,6 +150,55 @@ int lua_clientresize(lua_State *L) {
 
   resize(lc->c, (struct wlr_box){.x = x, .y = y, .width = w, .height = h}, 0);
   return 0;
+}
+
+int lua_clientserialize(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  Client *c = lc->c;
+  const char *appid, *title;
+  const char *broken = get_broken();
+  struct json_object *json = json_object_new_object();
+  struct json_object *geom;
+  char str[2];
+  str[0] = c->scratchkey;
+  str[1] = '\0';
+
+  if (!(appid = client_get_appid(c)))
+    appid = broken;
+
+  if (!(title = client_get_title(c)))
+    title = broken;
+
+  json_object_object_add(json, "app_id", json_object_new_string(appid));
+  json_object_object_add(json, "title", json_object_new_string(title));
+  json_object_object_add(json, "focused",
+                         json_object_new_boolean(c == focustop(c->mon)));
+  json_object_object_add(json, "tags", json_object_new_int(c->tags));
+
+  geom = json_object_new_object();
+  json_object_object_add(geom, "x", json_object_new_int(c->geom.x));
+  json_object_object_add(geom, "y", json_object_new_int(c->geom.y));
+  json_object_object_add(geom, "width", json_object_new_int(c->geom.width));
+  json_object_object_add(geom, "height", json_object_new_int(c->geom.height));
+  json_object_object_add(json, "geometry", geom);
+
+  json_object_object_add(json, "x11",
+                         json_object_new_boolean(client_is_x11(c)));
+  json_object_object_add(json, "floating",
+                         json_object_new_boolean(c->isfloating));
+  json_object_object_add(json, "urgent", json_object_new_boolean(c->isurgent));
+  json_object_object_add(json, "fullscreen",
+                         json_object_new_boolean(c->isfullscreen));
+  json_object_object_add(json, "nokill", json_object_new_boolean(c->nokill));
+
+  json_object_object_add(json, "address", json_object_new_int64((uintptr_t)c));
+  json_object_object_add(json, "monitor",
+                         json_object_new_int64((uintptr_t)c->mon));
+
+  lua_pushstring(L, json_object_to_json_string(json));
+
+  json_object_put(json);
+  return 1;
 }
 
 int lua_clientsettags(lua_State *L) {

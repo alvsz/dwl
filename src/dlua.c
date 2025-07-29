@@ -393,6 +393,7 @@ void lua_setup(lua_State **L) {
   const luaL_Reg client_metatable[] = {
       {"kill", lua_clientkill},
       {"resize", lua_clientresize},
+      {"serialize", lua_clientserialize},
       {"set_tags", lua_clientsettags},
       {"set_mon", lua_clientsetmon},
       {"toggle_floating", lua_clienttogglefloating},
@@ -402,6 +403,7 @@ void lua_setup(lua_State **L) {
 
   const luaL_Reg monitor_metatable[] = {
       {"get_clients", lua_getclients},
+      {"serialize", lua_monitorserialize},
       {"set_gaps", lua_monitorsetgaps},
       {"set_default_gaps", lua_monitorsetgapsdefault},
       {"set_layout", lua_monitorsetlayout},

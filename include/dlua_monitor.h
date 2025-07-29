@@ -11,6 +11,7 @@ int lua_getclients(lua_State *L);
 int lua_getclientsformonitor(lua_State *L, LuaMonitor *lm);
 int lua_monitorindex(lua_State *L);
 int lua_monitornewindex(lua_State *L);
+int lua_monitorserialize(lua_State *L);
 int lua_monitorsetgaps(lua_State *L);
 int lua_monitorsetgapsdefault(lua_State *L);
 int lua_monitorsetlayout(lua_State *L);
