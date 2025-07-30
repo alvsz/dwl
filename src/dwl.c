@@ -851,8 +851,6 @@ void createnotify(struct wl_listener *listener, void *data) {
          fullscreennotify);
   LISTEN(&toplevel->events.request_maximize, &c->maximize, maximizenotify);
   LISTEN(&toplevel->events.set_title, &c->set_title, updatetitle);
-
-  dwl_ipc_send_client_opened_event(c);
 }
 
 void createpointer(struct wlr_pointer *pointer) {
@@ -1154,9 +1152,9 @@ void focusclient(Client *c, int lift) {
       client_activate_surface(old, 0);
     }
   }
-  printstatus();
   dwl_ipc_send_client_state_changed_event(c);
   dwl_ipc_send_client_state_changed_event(old_c);
+  printstatus();
 
   if (!c) {
     /* With no client, all we have left is to clear focus */
@@ -1594,6 +1592,8 @@ void mapnotify(struct wl_listener *listener, void *data) {
     applyrules(c);
   }
   printstatus();
+
+  dwl_ipc_send_client_opened_event(c);
 
 unset_fullscreen:
   m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
@@ -2139,8 +2139,8 @@ void setfloating(Client *c, int floating) {
       wlr_scene_node_lower_to_bottom(&c->border[i]->node);
     }
   arrange(c->mon);
-  printstatus();
   dwl_ipc_send_client_state_changed_event(c);
+  printstatus();
 }
 
 void setfullscreen(Client *c, int fullscreen) {
@@ -2162,8 +2162,8 @@ void setfullscreen(Client *c, int fullscreen) {
     resize(c, c->prev, 0);
   }
   arrange(c->mon);
-  printstatus();
   dwl_ipc_send_client_state_changed_event(c);
+  printstatus();
 }
 
 void setgamma(struct wl_listener *listener, void *data) {
@@ -2844,8 +2844,8 @@ void urgent(struct wl_listener *listener, void *data) {
     return;
 
   c->isurgent = 1;
-  printstatus();
   dwl_ipc_send_client_state_changed_event(c);
+  printstatus();
 
   if (client_surface(c)->mapped)
     client_set_border_color(c, urgentcolor);

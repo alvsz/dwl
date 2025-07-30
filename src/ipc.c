@@ -126,6 +126,9 @@ void dwl_ipc_send_client_opened_event(Client *b) {
   char *str;
   int err;
 
+  if (!b)
+    return;
+
   wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)b);
@@ -142,6 +145,9 @@ void dwl_ipc_send_client_closed_event(Client *b) {
   struct dwl_ipc_client *c;
   char *str;
   int err;
+
+  if (!b)
+    return;
 
   wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
@@ -160,6 +166,9 @@ void dwl_ipc_send_client_title_changed_event(Client *b) {
   char *str;
   int err;
 
+  if (!b)
+    return;
+
   wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
       err = asprintf(&str, "%lu", (uintptr_t)b);
@@ -176,6 +185,9 @@ void dwl_ipc_send_client_state_changed_event(Client *b) {
   struct dwl_ipc_client *c;
   char *str;
   int err;
+
+  if (!b)
+    return;
 
   wl_list_for_each(c, get_ipc_clients(), link) {
     if (c->resource) {
