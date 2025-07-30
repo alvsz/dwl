@@ -15,6 +15,7 @@ int lua_clientsettags(lua_State *L);
 int lua_clientsetmon(lua_State *L);
 int lua_clienttogglefloating(lua_State *L);
 int lua_clienttoggleinscratch(lua_State *L);
+int lua_clienttoggletags(lua_State *L);
 int lua_clientvisibleon(lua_State *L);
 int lua_createclient(lua_State *L, Client *c);
 

@@ -398,6 +398,7 @@ void lua_setup(lua_State **L) {
       {"set_mon", lua_clientsetmon},
       {"toggle_floating", lua_clienttogglefloating},
       {"toggle_in_scratch", lua_clienttoggleinscratch},
+      {"toggle_tags", lua_clienttoggletags},
       {"visible_on", lua_clientvisibleon},
       {NULL, NULL}};
 

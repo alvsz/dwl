@@ -205,14 +205,13 @@ int lua_clientserialize(lua_State *L) {
 int lua_clientsettags(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   uint32_t tag = (uint32_t)luaL_checkinteger(L, 2);
-  Monitor *selmon = get_selmon();
 
   if ((tag & TAGMASK) == 0)
     return 0;
 
   lc->c->tags = tag & TAGMASK;
-  focusclient(focustop(selmon), 1);
-  arrange(selmon);
+  focusclient(focustop(lc->c->mon), 1);
+  arrange(lc->c->mon);
 
   printstatus();
   return 0;
@@ -247,6 +246,22 @@ int lua_clienttoggleinscratch(lua_State *L) {
     lc->c->scratchkey = key[0];
 
   printstatus();
+  return 0;
+}
+
+int lua_clienttoggletags(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  uint32_t tag = (uint32_t)luaL_checkinteger(L, 2);
+  uint32_t newtags = lc->c->tags ^ (tag & TAGMASK);
+
+  if (!newtags)
+    return 0;
+
+  lc->c->tags = newtags;
+  focusclient(focustop(lc->c->mon), 1);
+  arrange(lc->c->mon);
+  printstatus();
+
   return 0;
 }
 
