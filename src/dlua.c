@@ -391,6 +391,7 @@ int lua_openmodule(lua_State *L) {
 
 void lua_setup(lua_State **L) {
   const luaL_Reg client_metatable[] = {
+      {"focus", lua_clientfocus},
       {"kill", lua_clientkill},
       {"resize", lua_clientresize},
       {"serialize", lua_clientserialize},

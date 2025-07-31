@@ -134,6 +134,12 @@ int lua_clientnewindex(lua_State *L) {
   return 0;
 }
 
+int lua_clientfocus(lua_State *L) {
+  LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
+  focusclient(lc->c, 1);
+  return 0;
+}
+
 int lua_clientkill(lua_State *L) {
   LuaClient *lc = (LuaClient *)luaL_checkudata(L, 1, "Client");
   if (lc->c && !lc->c->nokill)
