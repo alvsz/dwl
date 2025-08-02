@@ -3,10 +3,10 @@
 
 /* enums */
 #include <stdint.h>
-#include <xkbcommon/xkbcommon.h>
-#include <wlr/util/box.h>
 #include <wayland-server.h>
 #include <wayland-util.h>
+#include <wlr/util/box.h>
+#include <xkbcommon/xkbcommon.h>
 
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
 enum { XDGShell, LayerShell, X11 };                 /* client types */
@@ -90,6 +90,7 @@ typedef struct {
 typedef struct {
   uint32_t mod;
   xkb_keysym_t keysym;
+  int locked;
   void (*func)(const Arg *);
   const Arg arg;
 } Key;

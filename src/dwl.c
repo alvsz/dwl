@@ -1426,10 +1426,12 @@ int keybinding(uint32_t mods, xkb_keysym_t sym) {
    */
   const Key *k;
   for (k = keys; k < END(keys); k++) {
-    if (CLEANMASK(mods) == CLEANMASK(k->mod) && sym == k->keysym && k->func) {
+    if (CLEANMASK(mods) == CLEANMASK(k->mod) && sym == k->keysym &&
+        ((locked && k->locked) || !locked) && k->func) {
       k->func(&k->arg);
       return 1;
-    }
+    } else
+      printf("locked: %d, key locked: %d!!!\n\n\n", locked, k->locked);
   }
   return 0;
 }
@@ -1454,7 +1456,7 @@ void keypress(struct wl_listener *listener, void *data) {
 
   /* On _press_ if there is no active screen locker,
    * attempt to process a compositor keybinding. */
-  if (!locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+  if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
     for (i = 0; i < nsyms; i++)
       handled = keybinding(mods, syms[i]) || handled;
   }
