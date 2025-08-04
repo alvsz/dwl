@@ -1430,8 +1430,7 @@ int keybinding(uint32_t mods, xkb_keysym_t sym) {
         ((locked && k->locked) || !locked) && k->func) {
       k->func(&k->arg);
       return 1;
-    } else
-      printf("locked: %d, key locked: %d!!!\n\n\n", locked, k->locked);
+    }
   }
   return 0;
 }
