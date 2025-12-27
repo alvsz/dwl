@@ -1,17 +1,17 @@
 // clang-format off
 static const Key keys[] = {
-    /* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
+    /* Note that Shift changes certain key codes: 2 -> at, etc. */
     /* modifier                                      key                  locked     function            argument */
     { MODKEY,                                        XKB_KEY_d,           0,         spawn,              {.v = menucmd} },
     { MODKEY,                                        XKB_KEY_t,           0,         spawn,              {.v = termcmd} },
     { MODKEY | WLR_MODIFIER_SHIFT,                   XKB_KEY_Return,      0,         spawn,              {.v = termcmd} },
-    { MODKEY | WLR_MODIFIER_SHIFT,                   XKB_KEY_L,           0,         spawn,              SHCMD("loginctl lock-session") },
+    { MODKEY | WLR_MODIFIER_SHIFT,                   XKB_KEY_l,           0,         spawn,              SHCMD("loginctl lock-session") },
                                                                                     
     /* -------- bar -------- */                                                     
     { MODKEY,                                        XKB_KEY_p,           0,         lua_spawn,          LUACMD("toggle_bar()") },
                                                                                     
     { MODKEY,                                        XKB_KEY_q,           0,         killclient,         {0} },
-    { MODKEY | WLR_MODIFIER_SHIFT | WLR_MODIFIER_CTRL,       XKB_KEY_Q,   0,         quit,               {0} },
+    { MODKEY | WLR_MODIFIER_SHIFT | WLR_MODIFIER_CTRL,       XKB_KEY_q,   0,         quit,               {0} },
 
     /* -------- layouts -------- */
     { MODKEY,                                       XKB_KEY_u,            0,         setlayout,          {.v = &layouts[0]} },
