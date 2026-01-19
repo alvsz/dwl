@@ -68,7 +68,7 @@ static const Key keys[] = {
     { MODKEY,                                       XKB_KEY_0,                  0,         view,           {.ui = ~0} },
     { MODKEY | WLR_MODIFIER_SHIFT,                  XKB_KEY_parenright,         0,         tag,            {.ui = ~0} },
                                                                                            
-    { MODKEY,                                       XKB_KEY_r,                  0,         spawn,          SHCMD("agsv1 -t dashboard") },
+    { MODKEY,                                       XKB_KEY_r,                  0,         spawn,          SHCMD("astal -t Dashboard") },
     { MODKEY,                                       XKB_KEY_c,                  0,         spawn,          SHCMD("astal -t Calendar") },
                                                                                            
     { 0,                                            XF86XK_AudioStop,           1,         spawn,          SHCMD("midia stop") },
