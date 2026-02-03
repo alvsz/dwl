@@ -2364,6 +2364,7 @@ void setup(void) {
   wlr_ext_image_copy_capture_manager_v1_create(dpy, 1);
   wlr_ext_output_image_capture_source_manager_v1_create(dpy, 1);
   wlr_data_control_manager_v1_create(dpy);
+  wlr_ext_data_control_manager_v1_create(dpy, 1);
   wlr_primary_selection_v1_device_manager_create(dpy);
   wlr_viewporter_create(dpy);
   wlr_single_pixel_buffer_manager_v1_create(dpy);
