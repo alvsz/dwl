@@ -21,6 +21,7 @@ static const Rule rules[] = {
 	{ "org.kde.kdeconnect-settings",    NULL,                  0,          1,           0,       -1,       0 },
 	{ "org.kde.kdeconnect.handler",     NULL,                  0,          1,           0,       -1,       0 },
 	{ "wev",                            "wev",                 0,          1,           0,       -1,       0 },	
+	{ "ibus-ui-gtk3",                   "ibus-ui-gtk3",        0,          1,           0,       -1,       0 },	
                                     
 	{ "wlroots",                        NULL,                  0,          0,           1,       -1,       0 },
                                                                                                
