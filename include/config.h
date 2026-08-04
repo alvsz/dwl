@@ -49,8 +49,6 @@ static int log_level = WLR_ERROR;
 #define PRISM_LAUNCHER          "org.prismlauncher.PrismLauncher"
 #define RARE                    "Rare - GUI for legendary"
 
-Rule *rules = NULL;
-
 /* layout(s) */
 static const Layout layouts[] = {
 	/* symbol     arrange function */

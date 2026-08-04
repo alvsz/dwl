@@ -184,7 +184,7 @@ typedef struct {
   int isfloating;
   int nokill;
   int monitor;
-  const char scratchkey;
+  char scratchkey;
 } Rule;
 
 typedef struct {

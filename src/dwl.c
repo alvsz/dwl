@@ -87,6 +87,8 @@ static Monitor *selmon;
 
 static int enablegaps = 1; /* enables gaps, used by togglegaps */
 
+static Rule *rules = NULL;
+
 lua_State *H;
 
 #ifdef XWAYLAND
