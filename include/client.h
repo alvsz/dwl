@@ -398,7 +398,7 @@ static inline void client_set_suspended(Client *c, int suspended) {
 static inline int client_wants_focus(Client *c) {
 #ifdef XWAYLAND
   return client_is_unmanaged(c) &&
-         &&wlr_xwayland_surface_override_redirect_wants_focus(
+         wlr_xwayland_surface_override_redirect_wants_focus(
              c->surface.xwayland) &&
          wlr_xwayland_surface_icccm_input_model(c->surface.xwayland) !=
              WLR_ICCCM_INPUT_MODEL_NONE;
