@@ -147,8 +147,6 @@ void applyrules(Client *c) {
     title = broken;
 
   for (r = rules; r < rules + nrules; r++) {
-    // for (size_t n = 0; n < nrules; n++) {
-    // r = &rules[n];
     if ((!r->title || strstr(title, r->title)) &&
         (!r->id || strstr(appid, r->id))) {
       c->isfloating = r->isfloating;
