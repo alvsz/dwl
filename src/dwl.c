@@ -3016,6 +3016,7 @@ int *get_config_left_handed(void) { return &left_handed; }
 int *get_config_middle_button_emulation(void) {
   return &middle_button_emulation;
 }
+Rule **get_config_rules(void) { return &rules; }
 
 unsigned int get_config_gappih(void) { return gappih; }
 unsigned int get_config_gappiv(void) { return gappiv; }

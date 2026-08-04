@@ -132,6 +132,14 @@ void lua_inputconfig(lua_State *L) {
   lua_setlefthanded(L);
 }
 
+void lua_loadrules(lua_State *L) {
+  if (!lua_getconfig(L, "rules", LUA_TTABLE)) {
+    Rule **rules = get_config_rules();
+    *rules = calloc(1, sizeof(Rule));
+    return;
+  }
+}
+
 void lua_loadtheme(lua_State *L) {
   const char *val;
   unsigned int tmp;

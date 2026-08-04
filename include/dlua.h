@@ -16,6 +16,7 @@ int lua_getmonitors(lua_State *L);
 int lua_getselmon(lua_State *L);
 int lua_getfocusedclient(lua_State *L);
 void lua_inputconfig(lua_State *L);
+void lua_loadrules(lua_State *L);
 void lua_loadtheme(lua_State *L);
 void lua_openconfigfile(lua_State *L);
 int lua_reloadconfig(lua_State *L);

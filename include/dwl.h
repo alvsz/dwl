@@ -228,6 +228,7 @@ int *get_config_natural_scrolling(void);
 int *get_config_disable_while_typing(void);
 int *get_config_left_handed(void);
 int *get_config_middle_button_emulation(void);
+Rule **get_config_rules(void);
 
 unsigned int get_config_gappih(void);
 unsigned int get_config_gappiv(void);
