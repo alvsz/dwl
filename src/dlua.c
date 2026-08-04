@@ -132,6 +132,63 @@ void lua_inputconfig(lua_State *L) {
   lua_setlefthanded(L);
 }
 
+void lua_loadrules(lua_State *L) {
+  size_t *nrules = get_config_nrules();
+  Rule **rules = get_config_rules();
+  const char *s;
+
+  if (!lua_getconfig(L, "rules", LUA_TTABLE)) {
+    *rules = calloc(1, sizeof(Rule));
+    *nrules = 1;
+    return;
+  }
+
+  *nrules = lua_rawlen(L, -1);
+  *rules = calloc(*nrules, sizeof(Rule));
+
+  for (size_t i = 0; i < *nrules; i++) {
+    lua_rawgeti(L, -1, i + 1);
+
+    if (!lua_istable(L, -1)) {
+      lua_pop(L, 1);
+      continue;
+    }
+
+    lua_rawgeti(L, -1, 1);
+    s = lua_tostring(L, -1);
+    (*rules)[i].id = s ? strdup(s) : NULL;
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 2);
+    s = lua_tostring(L, -1);
+    (*rules)[i].title = s ? strdup(s) : NULL;
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 3);
+    (*rules)[i].tags = (uint32_t)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 4);
+    (*rules)[i].isfloating = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 5);
+    (*rules)[i].nokill = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 6);
+    (*rules)[i].monitor = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 7);
+    s = lua_tostring(L, -1);
+    (*rules)[i].scratchkey = s ? s[0] : '\0';
+    lua_pop(L, 1);
+
+    lua_pop(L, 1);
+  }
+}
+
 void lua_loadtheme(lua_State *L) {
   const char *val;
   unsigned int tmp;
@@ -445,6 +502,7 @@ void lua_setup(lua_State **L) {
   lua_openconfigfile(*L);
 
   lua_loadtheme(*L);
+  lua_loadrules(*L);
   lua_ipc_init(*L);
 }
 

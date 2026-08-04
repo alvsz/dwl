@@ -87,6 +87,9 @@ static Monitor *selmon;
 
 static int enablegaps = 1; /* enables gaps, used by togglegaps */
 
+static Rule *rules = NULL;
+static size_t nrules;
+
 lua_State *H;
 
 #ifdef XWAYLAND
@@ -143,7 +146,7 @@ void applyrules(Client *c) {
   if (!(title = client_get_title(c)))
     title = broken;
 
-  for (r = rules; r < END(rules); r++) {
+  for (r = rules; r < rules + nrules; r++) {
     if ((!r->title || strstr(title, r->title)) &&
         (!r->id || strstr(appid, r->id))) {
       c->isfloating = r->isfloating;
@@ -3016,6 +3019,8 @@ int *get_config_left_handed(void) { return &left_handed; }
 int *get_config_middle_button_emulation(void) {
   return &middle_button_emulation;
 }
+Rule **get_config_rules(void) { return &rules; }
+size_t *get_config_nrules(void) { return &nrules; }
 
 unsigned int get_config_gappih(void) { return gappih; }
 unsigned int get_config_gappiv(void) { return gappiv; }
