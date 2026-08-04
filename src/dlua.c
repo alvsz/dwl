@@ -503,6 +503,7 @@ void lua_setup(lua_State **L) {
   lua_openconfigfile(*L);
 
   lua_loadtheme(*L);
+  lua_loadrules(*L);
   lua_ipc_init(*L);
 }
 
