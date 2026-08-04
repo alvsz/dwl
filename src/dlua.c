@@ -133,23 +133,22 @@ void lua_inputconfig(lua_State *L) {
 }
 
 void lua_loadrules(lua_State *L) {
-  size_t nrules;
-  Rule **ruless = get_config_rules();
+  size_t *nrules = get_config_nrules();
+  Rule **rules = get_config_rules();
   const char *s;
 
   if (!lua_getconfig(L, "rules", LUA_TTABLE)) {
-    *ruless = calloc(1, sizeof(Rule));
+    *rules = calloc(1, sizeof(Rule));
+    *nrules = 1;
     return;
   }
 
-  nrules = lua_rawlen(L, -1);
-  *ruless = calloc(nrules, sizeof(Rule));
+  *nrules = lua_rawlen(L, -1);
+  *rules = calloc(*nrules, sizeof(Rule));
 
-  for (size_t i = 0; i < nrules; i++) {
-    printf("rule %lu - ", i + 1);
+  for (size_t i = 0; i < *nrules; i++) {
     lua_rawgeti(L, -1, i + 1);
 
-    printf("tipo: %s\n", lua_typename(L, lua_type(L, -1)));
     if (!lua_istable(L, -1)) {
       lua_pop(L, 1);
       continue;
@@ -157,33 +156,33 @@ void lua_loadrules(lua_State *L) {
 
     lua_rawgeti(L, -1, 1);
     s = lua_tostring(L, -1);
-    (*ruless)[i].id = s ? strdup(s) : NULL;
+    (*rules)[i].id = s ? strdup(s) : NULL;
     lua_pop(L, 1);
 
     lua_rawgeti(L, -1, 2);
     s = lua_tostring(L, -1);
-    (*ruless)[i].title = s ? strdup(s) : NULL;
+    (*rules)[i].title = s ? strdup(s) : NULL;
     lua_pop(L, 1);
 
     lua_rawgeti(L, -1, 3);
-    (*ruless)[i].tags = (uint32_t)lua_tointeger(L, -1);
+    (*rules)[i].tags = (uint32_t)lua_tointeger(L, -1);
     lua_pop(L, 1);
 
     lua_rawgeti(L, -1, 4);
-    (*ruless)[i].isfloating = (int)lua_tointeger(L, -1);
+    (*rules)[i].isfloating = (int)lua_tointeger(L, -1);
     lua_pop(L, 1);
 
     lua_rawgeti(L, -1, 5);
-    (*ruless)[i].nokill = (int)lua_tointeger(L, -1);
+    (*rules)[i].nokill = (int)lua_tointeger(L, -1);
     lua_pop(L, 1);
 
     lua_rawgeti(L, -1, 6);
-    (*ruless)[i].monitor = (int)lua_tointeger(L, -1);
+    (*rules)[i].monitor = (int)lua_tointeger(L, -1);
     lua_pop(L, 1);
 
     lua_rawgeti(L, -1, 7);
     s = lua_tostring(L, -1);
-    (*ruless)[i].scratchkey = s ? s[0] : '\0';
+    (*rules)[i].scratchkey = s ? s[0] : '\0';
     lua_pop(L, 1);
 
     lua_pop(L, 1);
