@@ -6,3 +6,5 @@ dwlcmd
 .ccls-cache
 compile_commands.json
 obj
+.cache
+main-commits.txt
