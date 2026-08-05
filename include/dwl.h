@@ -163,7 +163,6 @@ void setcursor(struct wl_listener *listener, void *data);
 void setcursorshape(struct wl_listener *listener, void *data);
 void setfloating(Client *c, int floating);
 void setfullscreen(Client *c, int fullscreen);
-void setgamma(struct wl_listener *listener, void *data);
 void setgaps(int oh, int ov, int ih, int iv);
 void setlayout(const Arg *arg);
 void setlayoutmonitor(Monitor *m, const Arg *arg);
