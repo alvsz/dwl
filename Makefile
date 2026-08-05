@@ -91,7 +91,7 @@ dist: clean
 
 install: dwl
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-  rm -f $(DESTDIR)$(PREFIX)/bin/dwl
+	rm -f $(DESTDIR)$(PREFIX)/bin/dwl
 	cp -f dwl $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/dwl
 	cp -f dwlcmd $(DESTDIR)$(PREFIX)/bin
