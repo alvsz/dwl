@@ -18,6 +18,7 @@ enum {
   LyrTop,
   LyrFS,
   LyrOverlay,
+  LyrIMPopup,
   LyrBlock,
   NUM_LAYERS
 }; /* scene layers */
