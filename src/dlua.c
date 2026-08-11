@@ -141,6 +141,16 @@ void lua_loadmonrules(lua_State *L) {
 
   if (!lua_getconfig(L, "monitor_rules", LUA_TTABLE)) {
     *monrules = calloc(1, sizeof(MonitorRule));
+    *monrules[0] = (MonitorRule){
+        .name = NULL,
+        .mfact = 0.55f,
+        .nmaster = 1,
+        .scale = 1,
+        .lt = &layouts[0],
+        .rr = WL_OUTPUT_TRANSFORM_NORMAL,
+        .x = -1,
+        .y = -1,
+    };
     *nrules = 1;
     return;
   }
