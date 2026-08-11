@@ -845,7 +845,7 @@ void createmon(struct wl_listener *listener, void *data) {
   wlr_output_state_init(&state);
   /* Initialize monitor state using configured rules */
   m->tagset[0] = m->tagset[1] = 1;
-  for (r = monrules; r < END(monrules); r++) {
+  for (r = monrules; r < monrules + nmonrules; r++) {
     if (!r->name || strstr(m->name, r->name)) {
       m->m.x = r->x;
       m->m.y = r->y;
