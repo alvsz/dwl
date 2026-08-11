@@ -447,6 +447,25 @@ int lua_openmodule(lua_State *L) {
 }
 
 void lua_setup(lua_State **L) {
+
+  *L = luaL_newstate();
+  luaL_openlibs(*L);
+
+  luaL_requiref(*L, "dwl", lua_openmodule, 1);
+  lua_setglobal(*L, "dwl");
+
+  lua_init_transforms(*L);
+  lua_init_monitor(*L);
+  lua_init_transforms(*L);
+
+  lua_openconfigfile(*L);
+
+  lua_loadtheme(*L);
+  lua_loadrules(*L);
+  lua_ipc_init(*L);
+}
+
+void lua_init_client(lua_State *L) {
   const luaL_Reg client_metatable[] = {
       {"focus", lua_clientfocus},
       {"kill", lua_clientkill},
@@ -460,6 +479,19 @@ void lua_setup(lua_State **L) {
       {"visible_on", lua_clientvisibleon},
       {NULL, NULL}};
 
+  luaL_newmetatable(L, "Client");
+
+  lua_pushcfunction(L, lua_clientindex);
+  lua_setfield(L, -2, "__index");
+  luaL_setfuncs(L, client_metatable, 0);
+
+  lua_pushcfunction(L, lua_clientnewindex);
+  lua_setfield(L, -2, "__newindex");
+
+  lua_pop(L, 1);
+}
+
+void lua_init_monitor(lua_State *L) {
   const luaL_Reg monitor_metatable[] = {
       {"get_clients", lua_getclients},
       {"serialize", lua_monitorserialize},
@@ -473,37 +505,50 @@ void lua_setup(lua_State **L) {
       {"toggle_tags", lua_monitortoggletags},
       {NULL, NULL}};
 
-  *L = luaL_newstate();
-  luaL_openlibs(*L);
+  luaL_newmetatable(L, "Monitor");
 
-  fprintf(stderr, "lua criado\n");
+  lua_pushcfunction(L, lua_monitorindex);
+  lua_setfield(L, -2, "__index");
+  luaL_setfuncs(L, monitor_metatable, 0);
 
-  luaL_requiref(*L, "dwl", lua_openmodule, 1);
-  lua_setglobal(*L, "dwl");
+  lua_pushcfunction(L, lua_monitornewindex);
+  lua_setfield(L, -2, "__newindex");
 
-  luaL_newmetatable(*L, "Client");
+  lua_pop(L, 1);
+}
 
-  lua_pushcfunction(*L, lua_clientindex);
-  lua_setfield(*L, -2, "__index");
-  luaL_setfuncs(*L, client_metatable, 0);
+void lua_init_transforms(lua_State *L) {
+  lua_getglobal(L, "dwl");
 
-  lua_pushcfunction(*L, lua_clientnewindex);
-  lua_setfield(*L, -2, "__newindex");
+  lua_newtable(L);
 
-  luaL_newmetatable(*L, "Monitor");
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_NORMAL);
+  lua_setfield(L, -2, "NORMAL");
 
-  lua_pushcfunction(*L, lua_monitorindex);
-  lua_setfield(*L, -2, "__index");
-  luaL_setfuncs(*L, monitor_metatable, 0);
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_90);
+  lua_setfield(L, -2, "ROTATE_90");
 
-  lua_pushcfunction(*L, lua_monitornewindex);
-  lua_setfield(*L, -2, "__newindex");
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_180);
+  lua_setfield(L, -2, "ROTATE_180");
 
-  lua_openconfigfile(*L);
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_270);
+  lua_setfield(L, -2, "ROTATE_270");
 
-  lua_loadtheme(*L);
-  lua_loadrules(*L);
-  lua_ipc_init(*L);
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_FLIPPED);
+  lua_setfield(L, -2, "FLIPPED");
+
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_FLIPPED_90);
+  lua_setfield(L, -2, "FLIPPED_90");
+
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_FLIPPED_180);
+  lua_setfield(L, -2, "FLIPPED_180");
+
+  lua_pushinteger(L, WL_OUTPUT_TRANSFORM_FLIPPED_270);
+  lua_setfield(L, -2, "FLIPPED_270");
+
+  lua_setfield(L, -2, "transform");
+
+  lua_pop(L, 1);
 }
 
 void lua_setupenv(lua_State *L) {
