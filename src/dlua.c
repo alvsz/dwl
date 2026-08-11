@@ -132,9 +132,70 @@ void lua_inputconfig(lua_State *L) {
   lua_setlefthanded(L);
 }
 
+void lua_loadmonrules(lua_State *L) {
+  size_t *nrules;
+  MonitorRule **monrules = get_config_monrules(&nrules);
+  const char *s;
+  size_t n, nlayouts;
+  Layout *layouts = get_layouts(&nlayouts);
+
+  if (!lua_getconfig(L, "monitor_rules", LUA_TTABLE)) {
+    *monrules = calloc(1, sizeof(MonitorRule));
+    *nrules = 1;
+    return;
+  }
+
+  *nrules = lua_rawlen(L, -1);
+  *monrules = calloc(*nrules, sizeof(Monitor));
+
+  for (size_t i = 0; i < *nrules; i++) {
+    lua_rawgeti(L, -1, i + 1);
+
+    if (!lua_istable(L, -1)) {
+      lua_pop(L, 1);
+      continue;
+    }
+
+    lua_rawgeti(L, -1, 1);
+    s = lua_tostring(L, -1);
+    (*monrules)[i].name = s ? strdup(s) : NULL;
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 2);
+    (*monrules)[i].mfact = (float)lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 3);
+    (*monrules)[i].nmaster = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 4);
+    (*monrules)[i].scale = (float)lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 5);
+    n = (size_t)lua_tointeger(L, -1);
+    (*monrules)[i].lt = &layouts[(n < nlayouts ? n : 0)];
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 6);
+    (*monrules)[i].rr = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, -1, 7);
+    (*monrules)[i].x = (int)lua_tointeger(L, -1);
+
+    lua_rawgeti(L, -1, 8);
+    (*monrules)[i].y = (int)lua_tointeger(L, -1);
+    lua_pop(L, 1);
+
+    lua_pop(L, 1);
+  }
+}
+
 void lua_loadrules(lua_State *L) {
-  size_t *nrules = get_config_nrules();
-  Rule **rules = get_config_rules();
+  size_t *nrules;
+  Rule **rules = get_config_rules(&nrules);
   const char *s;
 
   if (!lua_getconfig(L, "rules", LUA_TTABLE)) {

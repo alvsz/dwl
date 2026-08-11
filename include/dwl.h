@@ -211,6 +211,7 @@ int *get_enablegaps(void);
 struct wl_list *get_mons(void);
 struct wlr_seat *get_seat(void);
 Monitor *get_selmon(void);
+Layout *get_layouts(size_t *n);
 
 float *get_config_rootcolor(void);
 float *get_config_bordercolor(void);
@@ -229,8 +230,8 @@ int *get_config_natural_scrolling(void);
 int *get_config_disable_while_typing(void);
 int *get_config_left_handed(void);
 int *get_config_middle_button_emulation(void);
-Rule **get_config_rules(void);
-size_t *get_config_nrules(void);
+Rule **get_config_rules(size_t **n);
+MonitorRule **get_config_monrules(size_t **n);
 
 unsigned int get_config_gappih(void);
 unsigned int get_config_gappiv(void);

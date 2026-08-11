@@ -128,6 +128,9 @@ static int enablegaps = 1; /* enables gaps, used by togglegaps */
 static Rule *rules = NULL;
 static size_t nrules;
 
+static MonitorRule *monrules = NULL;
+static size_t nmonrules;
+
 lua_State *H;
 
 #ifdef XWAYLAND
@@ -3053,6 +3056,10 @@ struct wlr_seat *get_seat(void) { return seat; }
 Monitor *get_selmon(void) { return selmon; }
 struct wlr_xcursor_manager *get_cursor_mgr(void) { return cursor_mgr; }
 Client *get_grabc(void) { return grabc; }
+Layout *get_layouts(size_t *n) {
+  *n = LENGTH(layouts);
+  return layouts;
+}
 
 float *get_config_rootcolor(void) { return rootcolor; }
 float *get_config_bordercolor(void) { return bordercolor; }
@@ -3079,8 +3086,15 @@ int *get_config_left_handed(void) { return &left_handed; }
 int *get_config_middle_button_emulation(void) {
   return &middle_button_emulation;
 }
-Rule **get_config_rules(void) { return &rules; }
-size_t *get_config_nrules(void) { return &nrules; }
+Rule **get_config_rules(size_t **n) {
+  *n = &nrules;
+  return &rules;
+}
+
+MonitorRule **get_config_monrules(size_t **n) {
+  *n = &nmonrules;
+  return &monrules;
+}
 
 unsigned int get_config_gappih(void) { return gappih; }
 unsigned int get_config_gappiv(void) { return gappiv; }
