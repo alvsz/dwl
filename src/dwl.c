@@ -482,6 +482,7 @@ void cleanup(void) {
      to avoid destroying them with an invalid scene output. */
   wlr_scene_node_destroy(&scene->tree.node);
 
+  lua_cleanup(H);
   lua_close(H);
 }
 

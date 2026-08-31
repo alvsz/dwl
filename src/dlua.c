@@ -21,6 +21,13 @@ void lua_autostart(lua_State *L) {
   }
 }
 
+void lua_cleanup(lua_State *L) {
+  if (lua_getconfig(L, "cleanup", LUA_TFUNCTION)) {
+    if (lua_pcall(L, 0, 0, 0))
+      fprintf(stderr, "Erro ao executar o script: %s\n", lua_tostring(L, -1));
+  }
+}
+
 int lua_getclient(lua_State *L) {
   Client *c;
   const char *key = luaL_checkstring(L, 1);
