@@ -8,6 +8,7 @@
 #include "types.h"
 
 void lua_autostart(lua_State *L);
+void lua_cleanup(lua_State *L);
 int lua_getclient(lua_State *L);
 int lua_getconfig(lua_State *L, const char *key, int t);
 int lua_getconfigfield(lua_State *L, const char *key, int t);
